@@ -72,37 +72,39 @@ Commands.on(
         }
 
         coordinatesWithNotZeroOrBomb.forEach(async (theCoordinate) => {
-          switch (theActualNumber[theCoordinate]) {
-            case 1:
-              field[theCoordinate] = '||:one:||';
-              break;
-            case 2:
-              field[theCoordinate] = '||:two:||';
-              break;
-            case 3:
-              field[theCoordinate] = '||:three:||';
-              break;
-            case 4:
-              field[theCoordinate] = '||:four:||';
-              break;
-            case 5:
-              field[theCoordinate] = '||:five:||';
-              break;
-            case 6:
-              field[theCoordinate] = '||:six:||';
-              break;
-            case 7:
-              field[theCoordinate] = '||:seven:||';
-              break;
-            case 8:
-              field[theCoordinate] = '||:eight:||';
-              break;
-            case 9:
-              field[theCoordinate] = '||:nine:||';
-              break;
-            default:
-              field[theCoordinate] = '||❗||';
-              break;
+          if (field[theCoordinate] != '||💣||') {
+            switch (theActualNumber[theCoordinate]) {
+              case 1:
+                field[theCoordinate] = '||:one:||';
+                break;
+              case 2:
+                field[theCoordinate] = '||:two:||';
+                break;
+              case 3:
+                field[theCoordinate] = '||:three:||';
+                break;
+              case 4:
+                field[theCoordinate] = '||:four:||';
+                break;
+              case 5:
+                field[theCoordinate] = '||:five:||';
+                break;
+              case 6:
+                field[theCoordinate] = '||:six:||';
+                break;
+              case 7:
+                field[theCoordinate] = '||:seven:||';
+                break;
+              case 8:
+                field[theCoordinate] = '||:eight:||';
+                break;
+              case 9:
+                field[theCoordinate] = '||:nine:||';
+                break;
+              default:
+                field[theCoordinate] = '||❗||';
+                break;
+            }
           }
         });
       }
