@@ -1,5 +1,6 @@
 // Minesweeper in DC by Clash Crafter
 // Version: 1.1c - 22.08.2020
+// edit: addion of ez possible addon
 
 // Command group
 const Commands = new discord.command.CommandGroup({
@@ -38,7 +39,8 @@ Commands.on(
     var field: Array<string> = await generateField(
       fieldSize,
       numberOfBombs,
-      true
+      true,
+      -1
     );
 
     await msg?.reply(
@@ -48,16 +50,21 @@ Commands.on(
   }
 );
 
-// generate a Field
+// generate a field
 async function generateField(
   fieldSize: number,
   numberOfBombs: number,
-  spoiler: boolean
+  spoiler: boolean,
+  firstField: number
 ) {
   let bombCoordinates: number;
   let coordinatesWithNotZeroOrBomb: Array<number> = [];
   let theActualNumber: Array<number> = [];
   let spoilers: string = '';
+
+  if (spoiler) {
+    spoilers = '||';
+  }
 
   let possibleNumbers: Array<number> = [
     1,
@@ -69,10 +76,6 @@ async function generateField(
     -(fieldSize + 1),
     -(fieldSize + 2)
   ];
-
-  if (spoiler) {
-    spoilers = '||';
-  }
 
   // initialize the Array
   var field = new Array(fieldSize * fieldSize + (fieldSize - 1)).fill(
@@ -89,7 +92,8 @@ async function generateField(
     bombCoordinates = Math.floor(Math.random() * Math.floor(field.length));
     if (
       field[bombCoordinates] == spoilers + '💣' + spoilers ||
-      field[bombCoordinates] == '\n'
+      field[bombCoordinates] == '\n' ||
+      bombCoordinates == firstField
     ) {
       i--;
     } else {
