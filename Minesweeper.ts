@@ -35,7 +35,11 @@ Commands.on(
       await msg?.reply('Too many bombs!');
     }
 
-    var field: Array<string> = await generateField(fieldSize, numberOfBombs);
+    var field: Array<string> = await generateField(
+      fieldSize,
+      numberOfBombs,
+      true
+    );
 
     await msg?.reply(
       `*Minesweeper: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}*\n` +
@@ -44,12 +48,18 @@ Commands.on(
   }
 );
 
-async function generateField(fieldSize: number, numberOfBombs: number) {
+// generate a Field
+async function generateField(
+  fieldSize: number,
+  numberOfBombs: number,
+  spoiler: boolean
+) {
   let bombCoordinates: number;
-  var coordinatesWithNotZeroOrBomb: Array<number> = [];
-  var theActualNumber: Array<number> = [];
+  let coordinatesWithNotZeroOrBomb: Array<number> = [];
+  let theActualNumber: Array<number> = [];
+  let spoilers: string = '';
 
-  var possibleNumbers: Array<number> = [
+  let possibleNumbers: Array<number> = [
     1,
     -1,
     fieldSize,
@@ -60,8 +70,14 @@ async function generateField(fieldSize: number, numberOfBombs: number) {
     -(fieldSize + 2)
   ];
 
+  if (spoiler) {
+    spoilers = '||';
+  }
+
   // initialize the Array
-  var field = new Array(fieldSize * fieldSize + (fieldSize - 1)).fill('||0️⃣||');
+  var field = new Array(fieldSize * fieldSize + (fieldSize - 1)).fill(
+    spoilers + '0️⃣' + spoilers
+  );
 
   // set the \n on the Array for a perfect rectangle
   for (var i = 1; i < fieldSize; i++) {
@@ -71,15 +87,19 @@ async function generateField(fieldSize: number, numberOfBombs: number) {
   // set the Bomb and save the numbers that have to be set
   for (var i = 0; i < numberOfBombs; i++) {
     bombCoordinates = Math.floor(Math.random() * Math.floor(field.length));
-    if (field[bombCoordinates] == '||💣||' || field[bombCoordinates] == '\n') {
+    if (
+      field[bombCoordinates] == spoilers + '💣' + spoilers ||
+      field[bombCoordinates] == '\n'
+    ) {
       i--;
     } else {
-      field[bombCoordinates] = '||💣||';
+      field[bombCoordinates] = spoilers + '💣' + spoilers;
 
       for (var y = 0; y < possibleNumbers.length; y++) {
         if (
           field[bombCoordinates + possibleNumbers[y]] != '\n' &&
-          field[bombCoordinates + possibleNumbers[y]] != '||💣||' &&
+          field[bombCoordinates + possibleNumbers[y]] !=
+            spoilers + '💣' + spoilers &&
           field[bombCoordinates + possibleNumbers[y]]
         ) {
           coordinatesWithNotZeroOrBomb.push(
@@ -94,38 +114,38 @@ async function generateField(fieldSize: number, numberOfBombs: number) {
 
   // set the numbers in the field
   coordinatesWithNotZeroOrBomb.forEach(async (theCoordinate) => {
-    if (field[theCoordinate] != '||💣||') {
+    if (field[theCoordinate] != spoilers + '💣' + spoilers) {
       switch (theActualNumber[theCoordinate]) {
         case 1:
-          field[theCoordinate] = '||:one:||';
+          field[theCoordinate] = spoilers + ':one:' + spoilers;
           break;
         case 2:
-          field[theCoordinate] = '||:two:||';
+          field[theCoordinate] = spoilers + ':two:' + spoilers;
           break;
         case 3:
-          field[theCoordinate] = '||:three:||';
+          field[theCoordinate] = spoilers + ':three:' + spoilers;
           break;
         case 4:
-          field[theCoordinate] = '||:four:||';
+          field[theCoordinate] = spoilers + ':four:' + spoilers;
           break;
         case 5:
-          field[theCoordinate] = '||:five:||';
+          field[theCoordinate] = spoilers + ':five:' + spoilers;
           break;
         case 6:
-          field[theCoordinate] = '||:six:||';
+          field[theCoordinate] = spoilers + ':six:' + spoilers;
           break;
         case 7:
-          field[theCoordinate] = '||:seven:||';
+          field[theCoordinate] = spoilers + ':seven:' + spoilers;
           break;
         case 8:
-          field[theCoordinate] = '||:eight:||';
+          field[theCoordinate] = spoilers + ':eight:' + spoilers;
           break;
         case 9:
-          field[theCoordinate] = '||:nine:||';
+          field[theCoordinate] = spoilers + ':nine:' + spoilers;
           break;
         default:
           // there is no emoji for more than nine so...
-          field[theCoordinate] = '||❗||';
+          field[theCoordinate] = spoilers + '❗' + spoilers;
           break;
       }
     }
