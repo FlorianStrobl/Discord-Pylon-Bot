@@ -30,6 +30,9 @@ Commands.on(
     } else if (numberOfBombs < 1) {
       numberOfBombs = 1;
       await msg?.reply('At least 1 bomb!');
+    } else if (numberOfBombs > fieldSize) {
+      numberOfBombs = fieldSize;
+      await msg?.reply('Too many bombs!');
     }
 
     var field: Array<string> = await generateField(fieldSize, numberOfBombs);
