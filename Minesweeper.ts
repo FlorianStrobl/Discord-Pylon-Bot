@@ -2,6 +2,11 @@
 // Author: Clash Crafter
 // Version: 1.0
 
+const Commands = new discord.command.CommandGroup({
+  defaultPrefix: '.',
+  additionalPrefixes: ['!']
+});
+
 Commands.on(
   'minesweeper',
   (args) => ({
