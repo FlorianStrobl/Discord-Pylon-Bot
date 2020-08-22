@@ -1,5 +1,5 @@
 // Minesweeper in DC by Clash Crafter
-// Version: 1.1 - 22.08.2020
+// Version: 1.1b - 22.08.2020
 
 // Command group
 const Commands = new discord.command.CommandGroup({
