@@ -1,12 +1,13 @@
-// minesweeper
-// Author: Clash Crafter
-// Version: 1.0
+// Minesweeper in DC by Clash Crafter
+// Version: 1.1 - 22.08.2020
 
+// Command group
 const Commands = new discord.command.CommandGroup({
   defaultPrefix: '.',
   additionalPrefixes: ['!']
 });
 
+// Minesweeper
 Commands.on(
   'minesweeper',
   (args) => ({
@@ -29,6 +30,9 @@ Commands.on(
     var field = new Array(fieldSize * fieldSize + (fieldSize - 1)).fill(
       '||0️⃣||'
     );
+
+    var coordinatesWithNotZeroOrBomb: Array<number> = [];
+    var theActualNumber: Array<number> = [];
 
     var possibleOnes: Array<number> = [
       1,
@@ -61,9 +65,46 @@ Commands.on(
             field[bombCoordinates + possibleOnes[y]] != '||💣||' &&
             field[bombCoordinates + possibleOnes[y]]
           ) {
-            field[bombCoordinates + possibleOnes[y]] = '||❗||';
+            coordinatesWithNotZeroOrBomb.push(bombCoordinates + possibleOnes[y]);
+            theActualNumber[bombCoordinates + possibleOnes[y]] =
+              (theActualNumber[bombCoordinates + possibleOnes[y]] ?? 0) + 1;
           }
         }
+
+        coordinatesWithNotZeroOrBomb.forEach(async (theCoordinate) => {
+          switch (theActualNumber[theCoordinate]) {
+            case 1:
+              field[theCoordinate] = '||:one:||';
+              break;
+            case 2:
+              field[theCoordinate] = '||:two:||';
+              break;
+            case 3:
+              field[theCoordinate] = '||:three:||';
+              break;
+            case 4:
+              field[theCoordinate] = '||:four:||';
+              break;
+            case 5:
+              field[theCoordinate] = '||:five:||';
+              break;
+            case 6:
+              field[theCoordinate] = '||:six:||';
+              break;
+            case 7:
+              field[theCoordinate] = '||:seven:||';
+              break;
+            case 8:
+              field[theCoordinate] = '||:eight:||';
+              break;
+            case 9:
+              field[theCoordinate] = '||:nine:||';
+              break;
+            default:
+              field[theCoordinate] = '||❗||';
+              break;
+          }
+        });
       }
     }
 
