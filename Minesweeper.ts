@@ -99,7 +99,7 @@ Commands.on(
 
     await msg
       ?.reply(
-        `**Minesweeper**: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}\n *!op x y*  for open a field` +
+        `**Minesweeper**: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}\n *!op x y*  for open a field \n` +
           field.join('')
       )
       .then(async (theMsg) => {
@@ -166,7 +166,7 @@ Commands.on(
       field[z] = theActualField[z];
 
       await theOldMsg?.edit(
-        `**Minesweeper**: fieldsize: ${mineSize} + bombs: ${mineBombs}\n *!op x y*  for open a field` +
+        `**Minesweeper**: fieldsize: ${mineSize} + bombs: ${mineBombs}\n *!op x y*  for open a field \n` +
           field.join('')
       );
 
