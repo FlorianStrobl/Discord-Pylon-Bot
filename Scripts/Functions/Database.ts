@@ -1,4 +1,4 @@
-// Florian Crafter - 02.2021 - Version 1.2b
+// Florian Crafter - 02.2021 - Version 1.3
 // Question about the code? DM Clash Crafter#7370 on Discord
 
 // If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is availible
@@ -9,8 +9,7 @@ export const KV: pylon.KVNamespace = new pylon.KVNamespace('database');
 
 // structure of the data
 export interface DataStructure extends pylon.JsonObject {
-  index: string; // the id of the data
-  data: string; // data
+  index: string | number; // the id of the data
   // you can do here what ever you want as long it can be saved in the JSON format
 }
 
@@ -19,10 +18,10 @@ const indexName: string = 'index';
 
 /*
  * If you want to store objects, you can do it now with this functions easily. The functions try to utilise every single byte
- * of the 8196 byte limit per key. Your objects has to have all the same structure and and has to storable as JSON.
- * Additionaly can objects over 8196 bytes no be handled by these functions. SaveData() e.g. returns false if the size is reached and
+ * of the 8196 byte limit per key. Your objects don't have to have the same structure aslong that they have the setted index and and has to storable as JSON.
+ * Additionaly objects over 8196 bytes can NOT be handled by these functions. SaveData() e.g. returns false if the size is reached and
  * ChangeDataValues() too.
- * The objects are only savable if they have some kind of index / unique id. If two different data have the same
+ * The objects are only savable if they have some kind of index / unique id. If two different data/objects have the same
  * index / id, it will be overwritten! You can choose the index/id name yourself in the variable *indexName*.
  *
  * I would recommend to save this code inside a seperate file and importing then the functions.
@@ -90,7 +89,7 @@ export async function SaveData(data: DataStructure): Promise<boolean> {
 
     // search data in the current key
     let indexData: number = datas.findIndex(
-      (d) => d[indexName] === data[indexName]
+      (d) => d[indexName]?.toString() === data[indexName]?.toString()
     );
 
     if (indexData !== -1) {
@@ -135,7 +134,7 @@ export async function SaveData(data: DataStructure): Promise<boolean> {
 }
 
 // deletes the data for the given index. !!! if index wasn't in data base it returns false. Only use this if you want to delete one to ten Objects (do not loop over this, if it's more then 10 times)
-export async function DeleteData(index: string): Promise<boolean> {
+export async function DeleteData(index: string | number): Promise<boolean> {
   let size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
 
   // go through every key and search for the index
@@ -145,7 +144,9 @@ export async function DeleteData(index: string): Promise<boolean> {
       (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
 
     // search the index
-    let indexData: number = data.findIndex((data) => data[indexName] === index);
+    let indexData: number = data.findIndex(
+      (data) => data[indexName]!.toString() === index.toString()
+    );
 
     if (indexData !== -1) {
       // found data and deleting it localy
@@ -164,7 +165,7 @@ export async function DeleteData(index: string): Promise<boolean> {
 
 // returns the data for the given index. Only use this if you want to get one Object (do not loop over this)
 export async function GetData(
-  index: string
+  index: string | number
 ): Promise<DataStructure | undefined> {
   let size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
   let data: DataStructure | undefined;
@@ -173,7 +174,7 @@ export async function GetData(
   for (let i: number = 0; i <= size; ++i) {
     // search for index in the database and return the data if it finds something
     data = ((await KV.get<DataStructure[]>(`database_${i}`)) ?? []).find(
-      (data) => data[indexName] === index
+      (data) => data[indexName]?.toString() === index.toString()
     );
     if (data !== undefined) return data;
   }
@@ -198,7 +199,9 @@ export async function GetAllData(
 
     // use all the data and search now the data with the given properties
     for (let i = 0; i < data.length; ++i)
-      if (onlyDataWith(data[i])) filteredData.push(data[i]);
+      try {
+        if (onlyDataWith(data[i])) filteredData.push(data[i]);
+      } catch (e) {}
 
     // try return the data
     if (filteredData.length === 0) return undefined;
@@ -212,7 +215,7 @@ export async function GetAllData(
 
 // change values of data. !!! if index doesn't exist it will do nothing and return false. if new data is over the max byte size it will do nothing and return false. if you change the index, you'll create a new object with new values and old object still is saved
 export async function ChangeDataValues(
-  index: string,
+  index: string | number,
   newData: (data: DataStructure) => DataStructure
 ): Promise<boolean> {
   // try get current data
