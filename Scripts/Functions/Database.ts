@@ -147,7 +147,7 @@ export async function SaveData(data: DataStructure): Promise<boolean> {
   }
 
   // index is not in current database => try to save new object in an existing key
-  for (let i: number = 0; i <= size; i++) {
+  for (let i: number = 0; i <= size; ++i) {
     savedData = (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
     savedData.push(data);
 
