@@ -6,6 +6,7 @@
  * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
  *
  * I wouldn't recommend you to change anything besides the lines of code with "EDIT" at the end. An example are at the end of this Comment.
+ * I take no responsibilys if there is a bug and you loose data (shouldn't happen if you do everything that is in the docs).
  *
  * Store objects in Pylon now easily with these functions. The functions try to utilise every single byte
  * of the 8196 byte limit per key and if needed will create new keys.
