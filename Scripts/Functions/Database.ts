@@ -1,145 +1,177 @@
-// Florian Crafter - 02.2021 - Version 1.3
-// Question about the code? DM Clash Crafter#7370 on Discord
-
-// If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is availible
-// on "https://gist.github.com/FlorianStrobl/219c6c0af240a2a576b28b7aebb744e8/".
-
-// namespace
-export const KV: pylon.KVNamespace = new pylon.KVNamespace('database');
-
-// structure of the data
-export interface DataStructure extends pylon.JsonObject {
-  index: string | number; // the id of the data
-  // you can do here what ever you want as long it can be saved in the JSON format
-}
-
-// index name of the objects/interface. has to be the same as the index name of *DataStructure*
-const indexName: string = 'index';
+// Florian Crafter - 02.2021 - Version 1.5
+// Question about or need help for the code? DM Clash Crafter#7370 on Discord
 
 /*
- * If you want to store objects, you can do it now with this functions easily. The functions try to utilise every single byte
- * of the 8196 byte limit per key. Your objects don't have to have the same structure aslong that they have the setted index and and has to storable as JSON.
- * Additionaly objects over 8196 bytes can NOT be handled by these functions. SaveData() e.g. returns false if the size is reached and
- * ChangeDataValues() too.
- * The objects are only savable if they have some kind of index / unique id. If two different data/objects have the same
- * index / id, it will be overwritten! You can choose the index/id name yourself in the variable *indexName*.
+ * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
+ * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
+ *
+ * I wouldn't recommend you to change anything besides the lines of code with "EDIT" at the end. An example are at the end of this Comment.
+ *
+ * Store objects in Pylon now easily with these functions. The functions try to utilise every single byte
+ * of the 8196 byte limit per key and if needed will create new keys.
+ * Your objects DON'T has to have the same structure as long as that they are storable as JSON and have the index as described later.
+ * Objects are only savable if they have a unique index / id. If two different objects have the same index / id, the data will be overwritten!
+ * You can choose the index / id name yourself in the variable *indexName*, then you change it in the interface
+ * and then you can use numbers and or strings as index / id.
+ *
+ * Single objects over 8196 bytes can NOT be handled by these functions.
+ * E.g. SaveData() and UpdateDataValues() returns false if the size is reached.
  *
  * I would recommend to save this code inside a seperate file and importing then the functions.
  *
  * Here a quick overview of the functions:
  *
+ *
  * SaveData(object); Promise<boolean> // object has to have the structure of the DataStructure interface and has to have a UNIQUE index/id
- * DeleteData("index/id"); Promise<boolean>
- * GetData("index/id"); Promise<DataStructure | undefined>
+ * DeleteData("index/id"); Promise<boolean> // deletes the data with this index. returns true if it was done succesfully.
+ * GetData("index/id"); Promise<DataStructure | undefined> // Returns your searched data or returns undefined if it doesn't exist.
  * GetAllData(function?); Promise<DataStructure[] | undefined> // optional function to get only data with specified properties
- * ChangeDataValues("index/id", function); Promise<boolean> // function has to return the object !!!
- * ResetDatabase(true); Promise<boolean>
+ * UpdateDataValues("index/id", function); Promise<boolean> // update the values of an specific object. The given function has to return an object !!!
+ * ChangeIndex("index/id", "index/id"); Promise<boolean> // change the index of an object.
+ * IndexExist("index/id"); Promise<boolean> // returns true if an object exists which has this index
+ * AllIndexes(function?); // returns all indexes (with the properties defined in the optinal function)
+ * DuplicateData("index/id", "index/id", function?); // duplicates the object and optinally change values from it
+ * ResetDatabase(true); Promise<boolean> // deletes THE ENTIRE DATA
  *
- * Some functions return a bool which says if the task was succesfully done
  *
- * DO NOT LOOP OVER SaveData(), DeleteData() and ChangeDataValues() (at least not more then 10 times)
- * because you can hit the 100ms limit of Pylons CPU Time and LOOSE SOME DATA
+ * Yes, the UpdateDataValues() function is just a cleaner version of doing it manually with GetData() and SaveData().
  *
- * Yes the ChangeDataValues() is just a cleaner version of doing it manually with the other functions.
+ * Some functions return a bool which let you know if the task was succesfully done (e.g. if UpdateDataValues() returns false, it hasn't updated anything).
  *
- * Actuall keys used are:*databaseKeySize and database_databaseKeySize
+ * DO NOT LOOP OVER SaveData(), DeleteData() and UpdateDataValues() (at least not more then 10 times)
+ * because you can hit the 100ms limit of Pylons CPU Time and LOOSE SOME DATA.
  *
- * This Benchmarks were made with an empty database at the beginning and with 1500 bytes objects (if not specified else).
- * I took all tests at least 5 times and yes, some results are pretty astonish but they are all true!
+ * Actuall keys used in the KV Namespace are (for debuging important): "databaseKeySize" and "database_${databaseKeySize}"
+ * I would recommend you to create a new KV Namespace instead of "database" for OTHER things you want to save,
+ * but you should use this Namespace for the functions here instead of an other to prevent interference with the code.
+ *
+ * Benchmarks:
+ * The Benchmarks were made with an empty database at the beginning and with 1500 bytes objects (if not specified else).
+ * I took all the tests at least 5 times and yes, some results are pretty astonish but they are all true!
  * Lines with " scale with the amount of keys and amount of objects in them
  * Lines with ' scale with the size of the objects in bytes
- * TIMES SOMETIMES DO NOT SCALE LINEAR!
+ * TIMES DO NOT SCALE LINEARLY ALL THE TIME!
  *
+ *                                 SaveData()
  * "' Average SaveData() time for new data (one object):                              ~30ms
  * "' Average SaveData() time for new data (one object in the key 20):                ~280ms
  * "' Average SaveData() time for updating existing data (one object):                ~25ms
  * "' Average SaveData() time for updating existing data (one object in the key 20):  ~170ms
  *
+ *                                 DeleteData()
  * "  Average DeleteData() time for existing data (one object):                       ~40ms
  * "  Average DeleteData() time for existing data (one object in key 1 but 20 keys):  ~150ms
  * "  Average DeleteData() time for existing data (one object in key 20):             ~300ms
  * "  Average DeleteData() time for non-existing data (one object):                   ~15ms
  * "  Average DeleteData() time for non-existing data (20 keys):                      ~145ms
  *
+ *                                  GetData()
  * "  Average GetData() time for existing data (one object):                          ~15ms
  * "  Average GetData() time existing or non-existing data (one object in key 20):    ~140ms
+ *
+ *                                  GetAllData()
  * "  Average GetAllData() time (100 objects (with 100 bytes and one key)):           ~20ms
  * "  Average GetAllData() time (100 objects (with 1500 bytes and 20 keys)):          ~145ms
- * "  Average GetAllData(f) time (one objects one key)):                              ~20ms
- * "  Average GetAllData(f) time (100 objects (20 keys)):                             ~150ms
+ * "  Average GetAllData(f) time (one objects one key with given function):           ~20ms
+ * "  Average GetAllData(f) time (100 objects (20 keys) with given function):         ~150ms
  *
- * "  Average ChangeDataValues() time (one object):                                   ~35ms
- * "  Average ChangeDataValues() time (one object (key 20)):                          ~290ms
- * "  Average ChangeDataValues() time none-existing data (one object (20 keys)):      ~150ms
+ *                                UpdateDataValues()
+ * "  Average UpdateDataValues() time (one object):                                   ~35ms
+ * "  Average UpdateDataValues() time (one object (key 20)):                          ~290ms
+ * "  Average UpdateDataValues() time none-existing data (one object (20 keys)):      ~150ms
+ *
+ * EXAMPLE:
+ * const myData = { index: "Clash Crafter", language: "German", age: 16, programmer: true }; // data I want to save
+ * await SaveData(myData); // saving data. If successfull returns true
+ * console.log( await GetData("Clash Crafter") ); // expected output: { index: "Clash Crafter", language: "German", age: 16, programmer: true }
+ * await DeleteData("Clash Crafter"); // deletes the data with this key. If succesfull returns true
+ * console.log( await GetData("Clash Crafter") ); // expected output: undefined
+ *
  */
+
+// namespace
+export const KV: pylon.KVNamespace = new pylon.KVNamespace('database');
+
+// structure of the data // EDIT
+export interface DataStructure extends pylon.JsonObject {
+  index: string | number; // the index / id of your data. Every object has to have this or else you can't use it here
+  // you can do here what ever you want as long it can be saved in the JSON format.
+  // you can ignore this too and just pass objects
+}
+
+// index name of the objects/interface. has to be the same as the index name of *DataStructure*
+const indexName: string = 'index'; // EDIT
 
 // pylons byte limit per key. you shoudn't change it, only if you bought BYOP and have now more size possibility per key
 const maxByteSize: number = 8196;
 
-// save data. If was index was already in database => update data. If index wasn't in the database => save new data. DO NOT loop over this more then 10 times!!!
+// DO NOT LOOP OVER THIS (more then 10 times)
 export async function SaveData(data: DataStructure): Promise<boolean> {
-  if ((await GetSize(data)) > maxByteSize) return false;
+  // Index is already in database => update object.
+  // Index isn't in the database => save as new object.
 
-  let size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
-  let datas: DataStructure[];
+  // objects over 8196 bytes and/or without an index are not supported
+  if (
+    (await GetSize(data)) > maxByteSize ||
+    data[indexName] === undefined ||
+    data[indexName] === null
+  )
+    return false;
 
-  // check if index is already in some key and change the data. return if so
+  let size: number = await GetDatabaseKeySize();
+  let savedData: DataStructure[];
+
+  // check if index is already in some key and change the object. return true if so
   for (let i: number = 0; i <= size; ++i) {
-    datas = (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
+    savedData = (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
 
-    // search data in the current key
-    let indexData: number = datas.findIndex(
+    // search object in current key
+    let indexData: number = savedData.findIndex(
       (d) => d[indexName]?.toString() === data[indexName]?.toString()
     );
 
     if (indexData !== -1) {
-      // change value of existing data in local array
-      datas[indexData] = data;
+      savedData[indexData] = data; // change value of existing object in local array
 
-      if ((await GetSize(datas)) <= maxByteSize) {
-        // size allows to save in current key
-        await KV.put(`database_${i}`, datas);
+      if ((await GetSize(savedData)) <= maxByteSize) {
+        await KV.put(`database_${i}`, savedData); // total size is under 8196 so save in current key
       } else {
-        // too big current key so:
-        datas.splice(indexData, 1);
-        await KV.put(`database_${i}`, datas);
-
-        // data was deleted from current key and will no be handelt and saved as new data
+        // too big for current key => delete object from current key and saving as new object
+        savedData.splice(indexData, 1);
+        await KV.put(`database_${i}`, savedData);
         await SaveData(data); // this should be pretty rare so no real performance lost
       }
+
       return true;
     }
   }
 
-  // it is a new index. Try to save it in an existing key to save time later
+  // index is not in current database => try to save new object in an existing key
   for (let i: number = 0; i <= size; i++) {
-    datas = (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
+    savedData = (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
+    savedData.push(data);
 
-    // first key is empty => everything should be empty
-    if (datas.length === 0 && size === 0) await KV.put(`databaseKeySize`, 0);
-
-    datas.push(data);
-
-    if ((await GetSize(datas)) <= maxByteSize) {
-      // data is saved in a key which has space left
-      await KV.put(`database_${i}`, datas);
+    if ((await GetSize(savedData)) <= maxByteSize) {
+      // size check for current key
+      await KV.put(`database_${i}`, savedData); // current key has space => object is saved in this key
       return true;
     }
   }
 
-  // no key had space so new key is cerated and data saved there
+  // no key had space => new key is cerated and object saved there
   await KV.put(`databaseKeySize`, ++size);
   await KV.put(`database_${size}`, [data]);
   return true;
 }
 
-// deletes the data for the given index. !!! if index wasn't in data base it returns false. Only use this if you want to delete one to ten Objects (do not loop over this, if it's more then 10 times)
+// DO NOT LOOP OVER THIS (more then 10 times)
 export async function DeleteData(index: string | number): Promise<boolean> {
-  let size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
+  // If index isn't in the database => return false.
+
+  const size: number = await GetDatabaseKeySize();
 
   // go through every key and search for the index
   for (let i: number = 0; i <= size; ++i) {
-    // get the current data
     let data: DataStructure[] =
       (await KV.get<DataStructure[]>(`database_${i}`)) ?? [];
 
@@ -148,13 +180,11 @@ export async function DeleteData(index: string | number): Promise<boolean> {
       (data) => data[indexName]!.toString() === index.toString()
     );
 
+    // object is in current key
     if (indexData !== -1) {
-      // found data and deleting it localy
-      data.splice(indexData, 1);
-      // save data in the kv
-      await KV.put(`database_${i}`, data);
-      // brings the data in right order if there is a key with no data
-      await DatabaseKeyOrder();
+      data.splice(indexData, 1); // found object and deleting it localy
+      await KV.put(`database_${i}`, data); // update kv
+      if (data.length === 0) await DatabaseKeyOrder(); // keys are sorted because one key is now empty
       return true;
     }
   }
@@ -163,18 +193,18 @@ export async function DeleteData(index: string | number): Promise<boolean> {
   return false;
 }
 
-// returns the data for the given index. Only use this if you want to get one Object (do not loop over this)
+// DO NOT LOOP OVER THIS (more then 10 times)
 export async function GetData(
   index: string | number
 ): Promise<DataStructure | undefined> {
-  let size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
+  const size: number = await GetDatabaseKeySize();
   let data: DataStructure | undefined;
 
   // it is more optimized to go manualy trow the data, then just doing GetAllData() and searching there
   for (let i: number = 0; i <= size; ++i) {
     // search for index in the database and return the data if it finds something
     data = ((await KV.get<DataStructure[]>(`database_${i}`)) ?? []).find(
-      (data) => data[indexName]?.toString() === index.toString()
+      (d) => d[indexName]?.toString() === index.toString()
     );
     if (data !== undefined) return data;
   }
@@ -183,54 +213,107 @@ export async function GetData(
   return undefined;
 }
 
-// return all your data. you can also filter only for some data
 export async function GetAllData(
-  onlyDataWith?: (data: DataStructure) => boolean
+  filter?: (data: DataStructure) => boolean
 ): Promise<DataStructure[] | undefined> {
-  const size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
+  const size: number = await GetDatabaseKeySize();
   let data: DataStructure[] = [];
 
   // get every key and save the data in a local array
   for (let i: number = 0; i <= size; ++i)
     data = data.concat((await KV.get<DataStructure[]>(`database_${i}`)) ?? []);
 
-  if (onlyDataWith !== undefined) {
+  if (filter !== undefined) {
     let filteredData: DataStructure[] = [];
 
     // use all the data and search now the data with the given properties
     for (let i = 0; i < data.length; ++i)
       try {
-        if (onlyDataWith(data[i])) filteredData.push(data[i]);
+        if (filter(data[i])) filteredData.push(data[i]);
       } catch (e) {}
 
-    // try return the data
-    if (filteredData.length === 0) return undefined;
-    else return filteredData;
+    data = filteredData;
   }
 
-  // return the data
+  // return objects
   if (data.length === 0) return undefined;
   else return data;
 }
 
-// change values of data. !!! if index doesn't exist it will do nothing and return false. if new data is over the max byte size it will do nothing and return false. if you change the index, you'll create a new object with new values and old object still is saved
-export async function ChangeDataValues(
+export async function UpdateDataValues(
   index: string | number,
   newData: (data: DataStructure) => DataStructure
 ): Promise<boolean> {
+  // If index doesn't exist => does nothing and returns false
+  // If new object is larger then max byte size or index was changed => does nothing and return false.
+
   // try get current data
   let data: DataStructure | undefined = await GetData(index);
   if (data === undefined) return false;
 
-  // changes the data if index exist in database
-  data = await newData(data);
-  if ((await GetSize(data)) > maxByteSize) return false;
+  const updatedData: DataStructure = await newData(data); // updated object localy
+  if (
+    updatedData[indexName] !== data[indexName] ||
+    (await GetSize(updatedData)) > maxByteSize
+  )
+    return false; // id was changed and/or object is too big
 
-  // save updated data
-  return await SaveData(data);
+  return await SaveData(updatedData); // updated object
 }
 
-// reset all the data
+// duplicate existing data, and you can optionally modify it before
+export async function DuplicateData(
+  oldIndex: string | number,
+  newIndex: string | number,
+  dataEdit?: (data: DataStructure) => DataStructure
+): Promise<boolean> {
+  let data: DataStructure | undefined = await GetData(oldIndex);
+
+  // old key doesnt exist or new key is used already
+  if (data === undefined || (await GetData(newIndex)) !== undefined)
+    return false;
+
+  data[indexName] = newIndex; // change index of new data
+
+  if (dataEdit !== undefined) data = await dataEdit(data); // change the data if wanted
+
+  return await SaveData(data); // save the new data
+}
+
+export async function ChangeIndex(
+  oldIndex: string | number,
+  newIndex: string | number
+): Promise<boolean> {
+  // change the index of an existing object
+
+  let data: DataStructure | undefined = await GetData(oldIndex);
+  if (data === undefined || (await GetData(newIndex)) !== undefined)
+    return false; // old index doesn't exist and/or new index exists already
+
+  data[indexName] = newIndex; // change index
+
+  return (await SaveData(data)) && (await DeleteData(oldIndex)); // delete old object and save new one
+}
+
+// check if an index exists
+export const IndexExist = async (index: string | number): Promise<boolean> =>
+  (await GetData(index)) !== undefined;
+
+export async function AllIndexes(
+  filter?: (data: DataStructure) => boolean
+): Promise<string[]> {
+  const data: DataStructure[] | undefined = await GetAllData(filter);
+
+  if (data === undefined) return []; // no data is saved
+
+  let indexes: string[] = [];
+
+  // @ts-ignore this will be no problem, since you can't save data without an index so you know that this works
+  for await (let d of data) indexes.push(d[indexName]!);
+
+  return indexes;
+}
+
 export async function ResetDatabase(
   clearTheNamespace: boolean
 ): Promise<boolean> {
@@ -238,39 +321,37 @@ export async function ResetDatabase(
   return clearTheNamespace;
 }
 
-// corrects empty keys
+// correct empty keys
 async function DatabaseKeyOrder(): Promise<boolean> {
-  let size: number = (await KV.get<number>(`databaseKeySize`)) ?? 0;
+  let size: number = await GetDatabaseKeySize();
   let data: DataStructure[] | undefined;
 
   for (let i: number = 0; i <= size; ++i) {
     data = await KV.get<DataStructure[]>(`database_${i}`);
-
-    // this key has saved nothing so it should save over things
     if (data === undefined || data.length === 0) {
+      // current key is empty
       for (let y: number = i; y < size; ++y) {
         // puts data from key x+1 in key x
-        let newData: DataStructure[] =
-          (await KV.get<DataStructure[]>(`database_${y + 1}`)) ?? [];
-
-        await KV.put(`database_${y}`, newData);
+        await KV.put(
+          `database_${y}`,
+          (await KV.get<DataStructure[]>(`database_${y + 1}`)) ?? []
+        );
       }
 
-      // deletes the empty array which is now the last one and update the size
-      await KV.delete(`database_${size}`);
-      await KV.put(`databaseKeySize`, --size);
-
-      // restart everything the whole process to check for a second empty key
-      await DatabaseKeyOrder();
+      await KV.delete(`database_${size}`); // deletes empty key which is now the last one
+      await KV.put(`databaseKeySize`, --size); // update size
+      await DatabaseKeyOrder(); // restart the whole process to check for a second empty key
 
       return true;
     }
   }
-  // didn't changed anything which is good lol
-  return false;
+
+  return false; // changed nothing
 }
 
+// get number of keys in KV
+const GetDatabaseKeySize = async () =>
+  (await KV.get<number>(`databaseKeySize`)) ?? 0;
+
 // get the size in bytes of an object saved as JSON
-async function GetSize(data: any): Promise<number> {
-  return JSON.stringify(data).length;
-}
+const GetSize = async (data: any) => JSON.stringify(data).length;
