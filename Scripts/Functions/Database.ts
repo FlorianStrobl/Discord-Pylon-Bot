@@ -1,12 +1,12 @@
-// Florian Crafter - 02.2021 - Version 1.5
+// Florian Crafter - 02.2021 - Version 1.5a
 // Question about or need help for the code? DM Clash Crafter#7370 on Discord
+
+// READ THE CAPSLOCK LINES
 
 /*
  * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
  * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
  *
- * I wouldn't recommend you to change anything besides the lines of code with "EDIT" at the end. An example are at the end of this Comment.
- * I take no responsibilys if there is a bug and you loose data (shouldn't happen if you do everything that is in the docs).
  *
  * Store objects in Pylon now easily with these functions. The functions try to utilise every single byte
  * of the 8196 byte limit per key and if needed will create new keys.
@@ -18,10 +18,22 @@
  * Single objects over 8196 bytes can NOT be handled by these functions.
  * E.g. SaveData() and UpdateDataValues() returns false if the size is reached.
  *
- * I would recommend to save this code inside a seperate file and importing then the functions.
+ * I take no responsibilys if there is a bug and you loose data (shouldn't happen if you do everything that is in the docs).
  *
- * Here a quick overview of the functions:
+ * HOW YOU USE IT: I would recommend you to follow my steps exactly like I say:
+ * - Read this whole comment (or at least the capslock lines)
+ * - create a new file called (e.g.) "database.ts" for your discord server
+ *  - copy&paste this code to it
+ *  - search for "EDIT" with CTRL+F and edit there the lines to your values
+ * - At the top of all files were you need the database write: "import * as Database from './database';".
+ *   (The last string here is the folder directory. If your database is in a folder, write './FOLDER/database'
+ *    and if your file is in a folde but the database not do '../database')
+ * - Now you can use your 10 Functions and the KV directly with the keyword Database
+ *   (for example: await Database.GetAllData(); )
+ * PS: I would recommend you to create a new KV Namespace (instead of "database") for things you want to save without the functions
+ * to prevent errors and I wouldn't recomment you to use your old KV (If you had already one) for these functions. Again, to prevent errors.
  *
+ * A quick overview of the functions:
  *
  * SaveData(object); Promise<boolean> // object has to have the structure of the DataStructure interface and has to have a UNIQUE index/id
  * DeleteData("index/id"); Promise<boolean> // deletes the data with this index. returns true if it was done succesfully.
@@ -34,7 +46,6 @@
  * DuplicateData("index/id", "index/id", function?); // duplicates the object and optinally change values from it
  * ResetDatabase(true); Promise<boolean> // deletes THE ENTIRE DATA
  *
- *
  * Yes, the UpdateDataValues() function is just a cleaner version of doing it manually with GetData() and SaveData().
  *
  * Some functions return a bool which let you know if the task was succesfully done (e.g. if UpdateDataValues() returns false, it hasn't updated anything).
@@ -42,9 +53,7 @@
  * DO NOT LOOP OVER SaveData(), DeleteData() and UpdateDataValues() (at least not more then 10 times)
  * because you can hit the 100ms limit of Pylons CPU Time and LOOSE SOME DATA.
  *
- * Actuall keys used in the KV Namespace are (for debuging important): "databaseKeySize" and "database_${databaseKeySize}"
- * I would recommend you to create a new KV Namespace instead of "database" for OTHER things you want to save,
- * but you should use this Namespace for the functions here instead of an other to prevent interference with the code.
+ * The actuall keys used in the KV Namespace are (for debuging important): "databaseKeySize" and "database_${databaseKeySize}"
  *
  * Benchmarks:
  * The Benchmarks were made with an empty database at the beginning and with 1500 bytes objects (if not specified else).
