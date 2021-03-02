@@ -14,9 +14,9 @@ export async function HelpCommand(
 
   if (helpLvlOrName !== null) {
     // it isn't just null
-    if (!isNaN(parseInt(helpLvlOrName!))) {
+    if (!isNaN(parseInt(helpLvlOrName))) {
       // it is a number
-      helpLvl = parseInt(helpLvlOrName!);
+      helpLvl = parseInt(helpLvlOrName);
     } else {
       // NaN so it is a string
       let searchedCmd: Definitions.command | undefined = Settings.cmds.find(
@@ -33,9 +33,9 @@ export async function HelpCommand(
           embed: new discord.Embed({
             color: Settings.Color.DEFAULT,
             title: 'Help - ' + searchedCmd.name,
-            description:
-              searchedCmd.description +
-              ` Permission: [<@&${Settings.RolePerms[searchedCmd.permLvl]}>]`
+            description: `${searchedCmd.description} Permission: [<@&${
+              Settings.RolePerms[searchedCmd.permLvl]
+            }>]`
           }),
           allowedMentions: {}
         });
@@ -72,6 +72,7 @@ export async function HelpCommand(
     }
   }
 
+  // max size of helpLvl
   if (helpLvl > Settings.RolePerms.length) helpLvl = Settings.RolePerms.length;
 
   // the help message
@@ -183,7 +184,6 @@ export async function PingCommand(
   msg: discord.GuildMemberMessage
 ): Promise<void> {
   if (!(await Functions.OnCmd(msg, Settings.pingCommand))) return;
-  console.log('fire');
   await msg?.reply(
     `The ping is: ${Date.now() -
       Number(
