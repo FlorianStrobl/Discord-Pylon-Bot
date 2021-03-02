@@ -1,11 +1,12 @@
 // Florian Crafter - 02.2021 - Version 1.6a
-// Question about or need help for the code? DM Clash Crafter#7370 on Discord
+// Question about or need help for the code? Read the docs and look at the examples and at last DM me on Discord (Clash Crafter#7370).
 
 // READ AT LEAST THE CAPSLOCK LINES & EDIT THE LINES WITH // EDIT AT THE END
 
 /*
  * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
  * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
+ * See an example code on: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/DatabaseExamples.ts".
  *
  * Store objects in Pylon now easily with these functions. The functions try to utilise every single byte
  * of the 8196 byte limit per key and if needed will create new keys. It works pretty much as the current KV system just without the 256 key limit.
@@ -55,7 +56,7 @@
  *
  * The actuall keys used in the KV Namespace are (for debuging important): "databaseKeySize" and "database_${databaseKeySize}"
  *
- * Benchmarks (from version 1.3 => there were no different databases):
+ * Benchmarks (from version 1.3 => there were no different namespaces back then so results may differ to new versions):
  * The Benchmarks were made with an empty database at the beginning and with 1500 bytes objects (if not specified else).
  * I took all the tests at least 5 times and yes, some results are pretty astonish but they are all true!
  * Lines with " scale with the amount of keys and amount of objects in them
@@ -90,14 +91,9 @@
  * "  Average UpdateDataValues() time (one object (key 20)):                          ~290ms
  * "  Average UpdateDataValues() time none-existing data (one object (20 keys)):      ~150ms
  *
- * GetIndex(), GetData() and even GetAllIndexes(), GetAllData() are REALLY fast (like 50ms for 50kb data). Saving and deleting data needs much more time. And all the other functions are just combination of these functions.
- *
- * EXAMPLE:
- * const myData = { index: "Clash Crafter", language: "German", age: 16, programmer: true }; // data I want to save
- * await SaveData(myData); // saving data. If successfull returns true
- * console.log( await GetData("Clash Crafter") ); // expected output: { index: "Clash Crafter", language: "German", age: 16, programmer: true }
- * await DeleteData("Clash Crafter"); // deletes the data with this key. If succesfull returns true
- * console.log( await GetData("Clash Crafter") ); // expected output: undefined
+ * Conclusion to the benchmarks:
+ * GetIndex(), GetData() and even GetAllIndexes(), GetAllData() are REALLY fast (like 50ms for 50kb data) and can be improved greatly with use of different namespaces.
+ * Saving and deleting data needs much more time. And all the other functions are just combination of these functions.
  *
  */
 
