@@ -24,7 +24,7 @@ export async function OnCmd(
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
-        description: Settings.botDisabledMsg
+        description: Settings.botMessages.en.botDisabled
       })
     );
     return false;
@@ -42,7 +42,7 @@ export async function OnCmd(
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
-        description: Settings.cmdCooldownMsg.replace(
+        description: Settings.botMessages.en.cmdCooldownMsg.replace(
           'x',
           (
             ((await GetUser(msg.member.user.id))!.c - Date.now()) /
@@ -65,7 +65,7 @@ export async function OnCmd(
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
-        description: Settings.cmdNotActiveMsg
+        description: Settings.botMessages.en.cmdNotActive
       })
     );
     return false;
@@ -80,7 +80,7 @@ export async function OnCmd(
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
-        description: Settings.cmdNotPassword
+        description: Settings.botMessages.en.cmdNotPassword
       })
     );
     return false;
@@ -115,7 +115,7 @@ export async function OnCmd(
         new discord.Embed({
           color: Settings.Color.ERROR,
           title: 'Error',
-          description: Settings.cmdNotChannel
+          description: Settings.botMessages.en.cmdNotChannel
         })
       )
       .then(async (m) => setTimeout(async () => await m?.delete(), 10000));
@@ -201,7 +201,10 @@ export async function NoPermissionMsg(
     new discord.Embed({
       color: Settings.Color.ERROR,
       title: '🔒 Error',
-      description: Settings.cmdNoPerms.replace('@user', msg.member!.toMention())
+      description: Settings.botMessages.en.cmdNoPerms.replace(
+        '@user',
+        msg.member!.toMention()
+      )
     })
   );
 }
@@ -624,4 +627,47 @@ async function OptimizeDatabase(alg?: 'size' | 'index', del?: boolean) {
       for (let i: number = 0; i < user.length; i++) await SaveUser(user[i]);
     }
   }
+}
+
+// check if two objects are the same
+export function isEquivalent(a: any, b: any): boolean {
+  // Create arrays of property names
+  let aProps = Object.getOwnPropertyNames(a);
+  let bProps = Object.getOwnPropertyNames(b);
+
+  // sorting so they are in the same order (the order of properties)
+  aProps.sort();
+  bProps.sort();
+
+  // If number of properties is different,
+  // objects are not equivalent
+  if (aProps.length != bProps.length) return false;
+
+  for (var i = 0; i < aProps.length; i++) {
+    let propName = aProps[i];
+
+    // If values of same property are not equal,
+    // objects are not equivalent
+    if (a[propName] !== b[propName]) return false;
+  }
+
+  // If we made it this far, objects
+  // are considered equivalent
+  return true;
+}
+
+// check if two objects are the same
+export function hasProperties(a: any, b: any): boolean {
+  // Create arrays of property names
+  const aProps: Array<string> = Object.getOwnPropertyNames(a);
+
+  for (var i = 0; i < aProps.length; i++) {
+    let propName: string = aProps[i];
+
+    // If values of same property are not equal,
+    // objects are not equivalent
+    if (a[propName] !== b[propName]) return false;
+  }
+
+  return true;
 }
