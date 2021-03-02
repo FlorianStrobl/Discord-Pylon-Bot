@@ -3,8 +3,11 @@
 import * as Definitions from '../Main/definitions';
 import * as Settings from '../Main/settings';
 import * as Functions from '../Main/functions';
+import * as Database from '../Main/database';
 
-export async function Help(reaction: discord.Event.IMessageReactionAdd) {
+export async function Help(
+  reaction: discord.Event.IMessageReactionAdd
+): Promise<void> {
   if (!Settings.enabled) return;
 
   const msg: discord.Message | null | undefined = await (
@@ -48,26 +51,27 @@ export async function Help(reaction: discord.Event.IMessageReactionAdd) {
 export async function MessageDelete(
   event: discord.Event.IMessageDelete,
   oldMsg: discord.Message.AnyMessage | null
-) {
+): Promise<void> {
   if (!Settings.enabled) return;
 
-  await discord
-    .getGuildTextChannel(Settings.Channels.MESSAGEDELETE)
-    .then(async (c) => {
-      await c?.sendMessage({
-        allowedMentions: {},
-        content:
-          '`' +
-          `[${new Date().getDate() + 1}.${new Date().getMonth() +
-            1} - ${new Date().getHours() + 1}:${new Date().getMinutes()}]` +
-          '`' +
-          ` Eine Nachricht wurde in <#${event.channelId}> gelöscht.` +
-          (oldMsg !== null ? ` Autor: ${oldMsg!.member?.toMention()}.` : '')
-      });
-    });
+  // msg in #message-delete
+  await discord.getGuildTextChannel(Settings.Channels.MESSAGEDELETE).then((c) =>
+    c?.sendMessage({
+      allowedMentions: {},
+      content:
+        '`' +
+        `[${new Date().getDate() + 1}.${new Date().getMonth() +
+          1} - ${new Date().getHours() + 1}:${new Date().getMinutes()}]` +
+        '`' +
+        ` Message was deleted in <#${event.channelId}>.` +
+        (oldMsg !== null ? ` Author: ${oldMsg!.member?.toMention()}.` : '')
+    })
+  );
 }
 
-export async function Rules(reaction: discord.Event.IMessageReactionAdd) {
+export async function Rules(
+  reaction: discord.Event.IMessageReactionAdd
+): Promise<void> {
   if (!Settings.enabled || reaction.channelId !== Settings.Channels.RULES)
     return;
 
@@ -85,12 +89,15 @@ export async function Rules(reaction: discord.Event.IMessageReactionAdd) {
   )
     return;
 
-  // array with all the user ids of the user which have the blocked role, regardless if they left the guild or not
-  const userdata: Definitions.GHC_User | undefined = await Functions.GetUser(
-    msg!.member!.user.id
+  // TODO complete new user so he isnt in the db
+
+  // @ts-ignore gets the data of the user
+  const userdata: Definitions.GHC_User | undefined = await Database.GetData(
+    `data-${msg?.member?.user.id ?? '-'}`,
+    'user'
   );
 
-  if (!userdata!.c) {
+  if (!userdata?.c) {
     //  the user accepted the rules so the user gets the member or maintenance role and a welcome msg is throwen in the #welcome channel.
     if (
       (await Definitions.KV.get<boolean>(`serverStatus`)) === true ||
@@ -136,7 +143,9 @@ export async function Rules(reaction: discord.Event.IMessageReactionAdd) {
   }
 }
 
-export async function NewApply(reaction: discord.Event.IMessageReactionAdd) {
+export async function NewApply(
+  reaction: discord.Event.IMessageReactionAdd
+): Promise<void> {
   if (
     !Settings.enabled ||
     reaction.channelId !== Settings.Channels.APPLYS ||
@@ -144,9 +153,8 @@ export async function NewApply(reaction: discord.Event.IMessageReactionAdd) {
   )
     return;
 
-  // return if user did react in the last X milliseconds and delete his reaction
-  let m: any = await Definitions.KV.get(`applier.${reaction.userId}`);
-  if (m === undefined) {
+  // ratelimits: return if user did react in the last X milliseconds and delete his reaction
+  if ((await Definitions.KV.get(`applier.${reaction.userId}`)) === undefined) {
     Definitions.KV.put(`applier.${reaction.userId}`, 0, {
       ttl: Settings.applyReactionDelay * 1000
     });
@@ -177,20 +185,21 @@ export async function NewApply(reaction: discord.Event.IMessageReactionAdd) {
 
   await reaction.member?.addRole(Settings.Roles.APPLY);
 
-  await discord.getGuildTextChannel(Settings.Channels.BOT).then(
-    async (c) =>
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.DEFAULT,
-          timestamp: new Date().toISOString(),
-          title: 'New applicant!',
-          description: `${reaction.member?.toMention()} apply for the moderator role!`
-        })
-      )
+  await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
+    c?.sendMessage(
+      new discord.Embed({
+        color: Settings.Color.DEFAULT,
+        timestamp: new Date().toISOString(),
+        title: 'New applicant!',
+        description: `${reaction.member?.toMention()} apply for the moderator role!`
+      })
+    )
   );
 }
 
-export async function AbortApply(reaction: discord.Event.IMessageReactionAdd) {
+export async function AbortApply(
+  reaction: discord.Event.IMessageReactionAdd
+): Promise<void> {
   if (
     !Settings.enabled ||
     reaction.channelId !== Settings.Channels.APPLYS ||
@@ -202,22 +211,22 @@ export async function AbortApply(reaction: discord.Event.IMessageReactionAdd) {
 
   await reaction.member?.removeRole(Settings.Roles.APPLY);
 
-  if ((await Definitions.KV.get(`applier.${reaction.userId}`)) ?? 0 > 0) return;
+  if (((await Definitions.KV.get(`applier.${reaction.userId}`)) ?? 0) > 0)
+    return;
 
-  await discord.getGuildTextChannel(Settings.Channels.BOT).then(
-    async (c) =>
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.DEFAULT,
-          timestamp: new Date().toISOString(),
-          title: 'Application removed!',
-          description: `${reaction.member?.toMention()} withdraws his application.`
-        })
-      )
+  await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
+    c?.sendMessage(
+      new discord.Embed({
+        color: Settings.Color.DEFAULT,
+        timestamp: new Date().toISOString(),
+        title: 'Application removed!',
+        description: `${reaction.member?.toMention()} withdraws his application.`
+      })
+    )
   );
 }
 
-export async function Feedback(msg: discord.Message) {
+export async function Feedback(msg: discord.Message): Promise<void> {
   if (
     !Settings.enabled ||
     msg.channelId !== Settings.Channels.FEEDBACK ||
@@ -225,23 +234,22 @@ export async function Feedback(msg: discord.Message) {
   )
     return;
 
-  await discord.getGuildTextChannel(Settings.Channels.REPORT).then(
-    async (c) =>
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.GREEN,
-          timestamp: new Date().toISOString(),
-          author: {
-            iconUrl: msg.member?.user.getAvatarUrl() ?? undefined,
-            name: msg.member?.user.username
-          },
-          title: 'Feedback',
-          fields: [
-            { name: 'User', value: msg.member?.toMention() ?? '-' },
-            { name: 'Message', value: msg.content }
-          ]
-        })
-      )
+  await discord.getGuildTextChannel(Settings.Channels.REPORT).then((c) =>
+    c?.sendMessage(
+      new discord.Embed({
+        color: Settings.Color.GREEN,
+        timestamp: new Date().toISOString(),
+        author: {
+          iconUrl: msg.member?.user.getAvatarUrl() ?? undefined,
+          name: msg.member?.user.username
+        },
+        title: 'Feedback',
+        fields: [
+          { name: 'User', value: msg.member?.toMention() ?? '-' },
+          { name: 'Message', value: msg.content }
+        ]
+      })
+    )
   );
 
   await Functions.delMsg(
@@ -290,25 +298,24 @@ export async function BlacklistedWords(msg: discord.Message) {
     )
   );
 
-  await discord.getGuildTextChannel(Settings.Channels.BOT).then(
-    async (c) =>
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.RED,
-          title: 'Blacklisted word',
-          timestamp: new Date().toISOString(),
-          thumbnail: { url: msg.member?.user.getAvatarUrl() ?? undefined },
-          fields: [
-            {
-              name: 'User',
-              value: msg.member?.toMention() ?? 'error',
-              inline: true
-            },
-            { name: 'Channel', value: `<#${msg.channelId}>`, inline: true },
-            { name: 'Message', value: msg.content ?? '-' }
-          ]
-        })
-      )
+  await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
+    c?.sendMessage(
+      new discord.Embed({
+        color: Settings.Color.RED,
+        title: 'Blacklisted word',
+        timestamp: new Date().toISOString(),
+        thumbnail: { url: msg.member?.user.getAvatarUrl() ?? undefined },
+        fields: [
+          {
+            name: 'User',
+            value: msg.member?.toMention() ?? 'error',
+            inline: true
+          },
+          { name: 'Channel', value: `<#${msg.channelId}>`, inline: true },
+          { name: 'Message', value: msg.content ?? '-' }
+        ]
+      })
+    )
   );
 
   await msg?.delete();
