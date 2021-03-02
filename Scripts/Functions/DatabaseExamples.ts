@@ -66,7 +66,7 @@ commandGroup.on(
       await message.reply(
         `The text saved in key "${key}" is: "${data['text'] ?? 'no text'}".`
       );
-    else await message.reply(`Text couldn't be get. The key may not exit.`);
+    else await message.reply(`Text couldn't be get. The key may not exist.`);
   }
 );
 
