@@ -378,11 +378,12 @@ export async function IndexExist(
   namespace?: string
 ): Promise<boolean | boolean[]> {
   if (Array.isArray(index)) {
+    // it is an array
     let exists: boolean[] = [];
     for (let i: number = 0; i < index.length; ++i)
-      exists.push((await GetData(index, namespace)) !== undefined);
+      exists.push((await GetData(index[i], namespace)) !== undefined);
     return exists;
-  } else return (await GetData(index, namespace)) !== undefined;
+  } else return (await GetData(index, namespace)) !== undefined; // not an array so just simply do that
 }
 
 export async function ChangeIndex(
@@ -479,7 +480,7 @@ async function DatabaseKeyOrder(namespace: string): Promise<boolean> {
       }
 
       await KV.delete(`database_${size}`); // deletes empty key which is now the last one
-      size--;
+      --size;
       // update size
       await KV.put(`databaseKeySize`, size);
       /* In theory one more key if database is empty, but doesn't work right now. TODO 
