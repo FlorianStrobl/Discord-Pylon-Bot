@@ -1,24 +1,4 @@
-// Beta
-// Coder: Florian Crafter
-
-/* 
-Commands.defaultRaw(async (msg) => {
-  await msg?.reply(`That command doesn't even exist wtf are you doing`);
-});
-*/
-
-// check if msg starts with prefix
-// if (Settings.prefixes.includes(msg.content.split('')[0])) return;
-// !banList - shows all the bans
-
-// #bewerber slow mode for apply
-
-// @ts-ignore
-import './Extra/handlers';
-//import './Extra/pic';
-//import './Games/Minesweeper'; //TO DO
-
-import { Commands } from '../Main/definitions';
+// Beta - Coder: Florian Crafter
 
 import * as Definitions from './Main/definitions';
 import * as Settings from './Main/settings';
@@ -28,33 +8,59 @@ import * as Database from './Main/database';
 import * as Cron from './Extra/cron';
 import * as Handler from './Extra/handlers';
 
-// delete user => changeOrder() but now user.1 and user.2 are the same while size is 1
-// user.s = true / false bedeutung
-// delete help msgs after X time
-// tuple for apply max
-
-// if new role -> settings for @dj groovy
-
 // use for testing stuff
 Definitions.Commands.raw('t', async (msg) => {
   await msg.delete();
 
-  let n = Date.now();
+  for (let i = 0; i < 10; i++) {
+    //await Definitions.KV.put(`key.${i}`, '.'.repeat(8194));
+    //await Definitions.KV.delete(`key.${i}`);
+  }
 
-  await Database.SaveData({ index: '0', data: 'my data' });
-  await Database.SaveData({ index: '0', data: 'my data 2' });
-  await Database.ChangeDataValues('0', (d) => {
-    d.data = 'my data 3';
+  //console.log(await Definitions.KV.items());
+
+  const u = (d: Database.DataStructure) => {
+    d.data = '#'.repeat(8000);
     return d;
-  });
-  await Database.GetData('0');
-  await Database.GetAllData();
-  await Database.DeleteData('0');
-  await Database.ResetDatabase(true);
+  };
+  const u2 = (d: Database.DataStructure) => {
+    d.data = '+'.repeat(8000);
+    return d;
+  };
 
-  console.log(Date.now() - n);
+  const delay: number = 1000 * 60 * 60 * 2;
 
-  console.log(await Definitions.KV.items());
+  //await new pylon.KVNamespace('t').clear();
+
+  const t = Date.now();
+
+  for (let i = 0; i < 1; i++) {
+    console.log(
+      await Database.SaveData(
+        [
+          { index: i, data: '.'.repeat(8000) },
+          { index: i + 1, data: '.'.repeat(8000) },
+          { index: i + 2, data: '.'.repeat(8000) },
+          { index: i + 3, data: '.'.repeat(8000) },
+          { index: i + 4, data: '.'.repeat(8000) },
+          { index: i + 5, data: '.'.repeat(8000) }
+        ],
+        't'
+      )
+    );
+    console.log(await Database.UpdateDataValues(i, u, 't'));
+    console.log(await Database.GetData(i, 't'));
+    console.log(await Database.DuplicateData(i, (i + 1) * 10, u2, 't'));
+    console.log(await Database.ChangeIndex(i, (i + 1) * 100, 't'));
+    console.log(await Database.IndexExist(i, 't'));
+    console.log(await Database.GetAllData((d) => d.data !== undefined, 't'));
+    console.log(await Database.AllIndexes((d) => d.data !== undefined, 't'));
+    console.log(await Database.DeleteData(i, 't'));
+    console.log(await Database.ResetDatabase(true, 't'));
+  }
+
+  console.log('time: ' + (Date.now() - t));
+  console.log(await new pylon.KVNamespace('t').items());
 
   /*
   let start = Date.now();
@@ -118,8 +124,6 @@ discord.on(discord.Event.MESSAGE_CREATE, Handler.BlacklistedWords); // word blac
 //discord.on(discord.Event.MESSAGE_DELETE, Handler.MessageDelete); // save deleted messages
 discord.on(discord.Event.MESSAGE_REACTION_ADD, Handler.Help); // help msg
 
-// TODO kick voice
-
 // warn
 Definitions.PunishCmd.register(
   {
@@ -139,139 +143,134 @@ Definitions.PunishCmd.register(
       })
     })
   },
-  async (message, { user, reason }) =>
-    await Command.WarnCommand(message, user, reason)
+  (message, { user, reason }) => Command.WarnCommand(message, user, reason)
 );
 
 // help
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.helpCommand.name,
     aliases: Settings.helpCommand.altNames,
     description: Settings.helpCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ helpLvlOrName: args.stringOptional() }),
-  async (msg, { helpLvlOrName }) =>
-    await Command.HelpCommand(msg, helpLvlOrName ?? null)
+  (msg, { helpLvlOrName }) => Command.HelpCommand(msg, helpLvlOrName ?? null)
 );
 
 // serverStats
-Commands.raw(
+Definitions.Commands.raw(
   {
     name: Settings.serverStatsCommand.name,
     aliases: Settings.serverStatsCommand.altNames,
     description: Settings.serverStatsCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   Command.ServerStatsCommand
 );
 
 // invite
-Commands.raw(
+Definitions.Commands.raw(
   {
     name: Settings.inviteCommand.name,
     aliases: Settings.inviteCommand.altNames,
     description: Settings.inviteCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   Command.InviteCommand
 );
 
 // ping
-Commands.raw(
+Definitions.Commands.raw(
   {
     name: Settings.pingCommand.name,
     aliases: Settings.pingCommand.altNames,
     description: Settings.pingCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   Command.PingCommand
 );
 
 // report
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.reportCommand.name,
     aliases: Settings.reportCommand.altNames,
     description: Settings.reportCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ user: args.guildMember(), reason: args.text() }),
-  async (msg, { user, reason }) =>
-    await Command.ReportCommand(msg, user, reason)
+  (msg, { user, reason }) => Command.ReportCommand(msg, user, reason)
 );
 
 // start
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.startCommand.name,
     aliases: Settings.startCommand.altNames,
     description: Settings.startCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ password: args.string() }),
-  async (message, { password }) => await Command.StartCommand(message, password)
+  (message, { password }) => Command.StartCommand(message, password)
 );
 
 // stop
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.stopCommand.name,
     aliases: Settings.stopCommand.altNames,
     description: Settings.stopCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ password: args.string() }),
-  async (message, { password }) => await Command.StopCommand(message, password)
+  (message, { password }) => Command.StopCommand(message, password)
 );
 
 // say
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.sayCommand.name,
     aliases: Settings.sayCommand.altNames,
     description: Settings.sayCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ password: args.string(), msg: args.text() }),
-  async (message, { password, msg }) =>
-    await Command.SayCommand(message, password, msg)
+  (message, { password, msg }) => Command.SayCommand(message, password, msg)
 );
 
 // survey
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.surveyCommand.name,
     aliases: Settings.surveyCommand.altNames,
     description: Settings.surveyCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ password: args.string(), survey: args.text() }),
-  async (message, { password, survey }) =>
-    await Command.SayCommand(message, password, survey)
+  (message, { password, survey }) =>
+    Command.SayCommand(message, password, survey)
 );
 
 // closeSurvey - To edit with .iterMessages() - To do
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.closeSurveyCommand.name,
     aliases: Settings.closeSurveyCommand.altNames,
     description: Settings.closeSurveyCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ surveyNr: args.integer() }),
-  async (message, { surveyNr }) =>
-    await Command.CloseSurveyCommand(message, surveyNr)
+  (message, { surveyNr }) => Command.CloseSurveyCommand(message, surveyNr)
 );
 
 // apply
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.applyCommand.name,
     aliases: Settings.applyCommand.altNames,
     description: Settings.applyCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({
     password: args.string(),
@@ -279,90 +278,88 @@ Commands.on(
       choices: Settings.optionsTrue.concat(Settings.optionsFalse)
     })
   }),
-  async (message, { password, bool }) =>
-    await Command.ApplyCommand(message, password, bool)
+  (message, { password, bool }) => Command.ApplyCommand(message, password, bool)
 );
 
 // showApplicants
-Commands.raw(
+Definitions.Commands.raw(
   {
     name: Settings.showApplicantsCommand.name,
     aliases: Settings.showApplicantsCommand.altNames,
     description: Settings.showApplicantsCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   Command.ShowApplicants
 );
 
 // userStats - to do Rechte
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.userStatsCommand.name,
     aliases: Settings.userStatsCommand.altNames,
     description: Settings.userStatsCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ user: args.guildMember() }),
-  async (message, { user }) => await Command.UserStatsCommand(message, user)
+  (message, { user }) => Command.UserStatsCommand(message, user)
 );
 
 // ResetKV
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.resetKVCommand.name,
     aliases: Settings.resetKVCommand.altNames,
     description: Settings.resetKVCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ password: args.string() }),
-  async (message, { password }) =>
-    await Command.ResetKvCommand(message, password)
+  (message, { password }) => Command.ResetKvCommand(message, password)
 );
 
 // showCase - to do
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.showCaseCommand.name,
     aliases: Settings.showCaseCommand.altNames,
     description: Settings.showCaseCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ Id: args.string() }),
-  async (message, { Id }) => await Command.ShowCaseCommand(message, Id)
+  (message, { Id }) => Command.ShowCaseCommand(message, Id)
 );
 
 // pardon
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.pardonCommand.name,
     aliases: Settings.pardonCommand.altNames,
     description: Settings.pardonCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ user: args.guildMember() }),
-  async (message, { user }) => await Command.PardonCommand(message, user)
+  (message, { user }) => Command.PardonCommand(message, user)
 );
 
 // spawnMSG
-Commands.on(
+Definitions.Commands.on(
   {
     name: Settings.spawnMSGCommand.name,
     aliases: Settings.spawnMSGCommand.altNames,
     description: Settings.spawnMSGCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   (args) => ({ password: args.string(), MSGNr: args.integer() }),
-  async (message, { password, MSGNr }) =>
-    await Command.SpawnMessageCommand(message, password, MSGNr)
+  (message, { password, MSGNr }) =>
+    Command.SpawnMessageCommand(message, password, MSGNr)
 );
 
 // gif TO DO
-Commands.raw(
+Definitions.Commands.raw(
   {
     name: Settings.gifCommand.name,
     aliases: Settings.gifCommand.altNames,
     description: Settings.gifCommand.description,
-    onError: async (ctx, e) => await Functions.OnError(ctx, e)
+    onError: (ctx, e) => Functions.OnError(ctx, e)
   },
   Command.GifCommand
 );
@@ -389,3 +386,22 @@ Commands.raw(
 // showCaseCommand - rechte (ab ) - fehlermeldung bei ungültiger ID
 // use Log()
 // close survey command all/0
+
+// delete user => changeOrder() but now user.1 and user.2 are the same while size is 1
+// user.s = true / false bedeutung
+// delete help msgs after X time
+// tuple for apply max
+// kick voice
+
+// if new role -> settings for @dj groovy
+
+// temp warn
+// check if msg starts with prefix
+// if (Settings.prefixes.includes(msg.content.split('')[0])) return;
+// !banList - shows all the bans
+// XP system - .top lvl
+// auto color roles
+// auto roles
+
+// 10 narichten lvl 1
+// lvl 2
