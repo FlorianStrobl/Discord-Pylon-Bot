@@ -1,35 +1,36 @@
 // Minesweeper in DC by Clash Crafter
-// Version: 1.2 - 23.08.2020
+// Version: 1.2a - 23.08.2020
 
-const Commands = new discord.command.CommandGroup({
-  defaultPrefix: '!'
+const GameCommand = new discord.command.CommandGroup({
+  defaultPrefix: '.',
+  additionalPrefixes: ['!']
 });
 
-// #region the Variables
-var mineMsgId: string;
-var mineSize: number;
-var mineBombs: number;
-var field: Array<string>;
-var firstTime: boolean;
-var theActualField: Array<string>;
-var winCounter: number = 0;
+// #region the variables
+let mineMsgId: string;
+let firstTime: boolean;
+let field: Array<string>;
+let theActualField: Array<string>;
+let mineSize: number;
+let mineBombs: number;
+let winCounter: number = 0;
 // #endregion
 
-Commands.raw('showField', async (msg) => {
+// Shows a minesweeper field
+GameCommand.raw('showField', async (msg) => {
   await msg?.reply((await generateField(10, 3, false, -1)).join(''));
 });
 
-// Minesweeper (with Spoilers)
-Commands.on(
+// Minesweeper (with spoilers)
+GameCommand.on(
   'minesweeper',
   (args) => ({
     fieldSize: args.numberOptional(),
     numberOfBombs: args.numberOptional()
   }),
   async (msg, { fieldSize, numberOfBombs }) => {
-    if (!fieldSize) {
-      fieldSize = 7;
-    } else if (fieldSize > 14) {
+    if (!fieldSize) fieldSize = 7;
+    else if (fieldSize > 14) {
       fieldSize = 14;
       await msg?.reply('Not over 14 rows!');
     } else if (fieldSize < 4) {
@@ -37,9 +38,8 @@ Commands.on(
       await msg?.reply('Not under 4 rows!');
     }
 
-    if (!numberOfBombs) {
-      numberOfBombs = 2;
-    } else if (numberOfBombs < 1) {
+    if (!numberOfBombs) numberOfBombs = 2;
+    else if (numberOfBombs < 1) {
       numberOfBombs = 1;
       await msg?.reply('At least 1 bomb!');
     } else if (numberOfBombs > fieldSize) {
@@ -55,23 +55,23 @@ Commands.on(
     );
 
     await msg?.reply(
-      `*Minesweeper: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}*\n` +
-        field.join('')
+      `*Minesweeper: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}*\n${field.join(
+        ''
+      )}`
     );
   }
 );
 
 // Minesweeper coop
-Commands.on(
+GameCommand.on(
   'minesweeperCoop',
   (args) => ({
     fieldSize: args.numberOptional(),
     numberOfBombs: args.numberOptional()
   }),
   async (msg, { fieldSize, numberOfBombs }) => {
-    if (!fieldSize) {
-      fieldSize = 7;
-    } else if (fieldSize > 14) {
+    if (!fieldSize) fieldSize = 7;
+    else if (fieldSize > 14) {
       fieldSize = 14;
       await msg?.reply('Not over 14 rows!');
     } else if (fieldSize < 4) {
@@ -79,9 +79,8 @@ Commands.on(
       await msg?.reply('Not under 4 rows!');
     }
 
-    if (!numberOfBombs) {
-      numberOfBombs = 2;
-    } else if (numberOfBombs < 1) {
+    if (!numberOfBombs) numberOfBombs = 2;
+    else if (numberOfBombs < 1) {
       numberOfBombs = 1;
       await msg?.reply('At least 1 bomb!');
     } else if (numberOfBombs > fieldSize) {
@@ -93,18 +92,16 @@ Commands.on(
       '||:black_medium_small_square:||'
     );
 
-    for (let i = 1; i < fieldSize; i++) {
+    for (let i: number = 1; i < fieldSize; ++i)
       field[i * (fieldSize + 1) - 1] = '\n';
-    }
 
     await msg
       ?.reply(
-        `**Minesweeper**: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}\n *!op x y*  for open a field \n` +
-          field.join('')
+        `**Minesweeper**: fieldsize: ${fieldSize} + bombs: ${numberOfBombs}\n *!op x y*  for open a field \n${field.join(
+          ''
+        )}`
       )
-      .then(async (theMsg) => {
-        mineMsgId = theMsg.id;
-      });
+      .then((m) => (mineMsgId = m.id));
 
     firstTime = true;
     mineBombs = numberOfBombs;
@@ -113,45 +110,42 @@ Commands.on(
 );
 
 // Open field for coop
-Commands.on(
+GameCommand.on(
   'op',
   (args) => ({
     x: args.number(),
     y: args.number()
   }),
   async (msg, { x, y }) => {
-    if (!mineMsgId) {
-      return;
-    }
+    if (!mineMsgId) return;
 
     await msg?.delete();
 
-    // get the to edit msg
-    const theChannel = await discord.getGuildTextChannel(msg.channelId);
-    const theOldMsg = await theChannel?.getMessage(mineMsgId);
+    // get msg
+    const msgOld = await (
+      await discord.getGuildTextChannel(msg.channelId)
+    )?.getMessage(mineMsgId);
 
     // too big/little numbers
-    if (x > mineSize) {
-      return setTimeout(async () => {
-        await msg?.reply('x not over: ' + mineSize + '!');
+    if (x > mineSize)
+      return setTimeout(() => {
+        msg?.reply('x not over: ' + mineSize + '!');
       }, 15000);
-    } else if (x < 1) {
-      return setTimeout(async () => {
-        await msg?.reply('x has to be at least 1!');
+    else if (x < 1)
+      return setTimeout(() => {
+        msg?.reply('x has to be at least 1!');
       }, 15000);
-    }
-    if (y > mineSize) {
-      return setTimeout(async () => {
-        await msg?.reply('y not over: ' + mineSize);
+    if (y > mineSize)
+      return setTimeout(() => {
+        msg?.reply('y not over: ' + mineSize);
       }, 15000);
-    } else if (y < 1) {
-      return setTimeout(async () => {
-        await msg?.reply('y has to be at least 1!');
+    else if (y < 1)
+      return setTimeout(() => {
+        msg?.reply('y has to be at least 1!');
       }, 15000);
-    }
 
     // the coordinate of the field in the array
-    let z = (y - 1) * (mineSize + 1) + (x - 1);
+    let z: number = (y - 1) * (mineSize + 1) + (x - 1);
 
     // generate the field at the first opened field
     if (firstTime) {
@@ -165,13 +159,14 @@ Commands.on(
 
       field[z] = theActualField[z];
 
-      await theOldMsg?.edit(
-        `**Minesweeper**: fieldsize: ${mineSize} + bombs: ${mineBombs}\n *!op x y*  for open a field \n` +
-          field.join('')
+      await msgOld?.edit(
+        `**Minesweeper**: fieldsize: ${mineSize} + bombs: ${mineBombs}\n *!op x y*  for open a field \n${field.join(
+          ''
+        )}`
       );
 
-      // check lose
-      if (field[z] == '💣') {
+      // check lose and resets values if
+      if (field[z] === '💣') {
         firstTime = true;
         mineMsgId = '';
         mineSize = 0;
@@ -179,9 +174,9 @@ Commands.on(
         winCounter = 0;
         field = [];
         theActualField = [];
-        return setTimeout(async () => {
-          await theOldMsg?.delete();
-          await msg?.reply(msg.member.toMention() + ' loses the game!');
+        return setTimeout(() => {
+          msgOld?.delete();
+          msg?.reply(`${msg.member.toMention()} loses the game!`);
         }, 15000);
       }
 
@@ -194,31 +189,29 @@ Commands.on(
         winCounter = 0;
         field = [];
         theActualField = [];
-        return setTimeout(async () => {
-          await theOldMsg?.delete();
-          await msg?.reply(msg.member.toMention() + ' wins the game!');
+        return setTimeout(() => {
+          msgOld?.delete();
+          msg?.reply(msg.member.toMention() + ' wins the game!');
         }, 15000);
       }
     }
   }
 );
 
-// generate a field
+// generate a new field
 async function generateField(
   fieldSize: number,
   numberOfBombs: number,
   spoiler: boolean,
   firstField: number
-) {
+): Promise<string[]> {
   let bombCoordinates: number;
   let coordinatesWithNotZeroOrBomb: Array<number> = [];
   let theActualNumber: Array<number> = [];
   let spoilers: string = '';
 
   // spoiler for the single player
-  if (spoiler) {
-    spoilers = '||';
-  }
+  if (spoiler) spoilers = '||';
 
   // coordinates in the array were a number will probably be
   let possibleNumbers: Array<number> = [
@@ -232,29 +225,28 @@ async function generateField(
     -(fieldSize + 2)
   ];
 
-  // initialize the Array
+  // initialize the array
   let field = new Array(fieldSize * fieldSize + (fieldSize - 1)).fill(
     spoilers + '0️⃣' + spoilers
   );
 
-  // set the \n on the Array for a perfect rectangle
-  for (let i = 1; i < fieldSize; i++) {
+  // set the \n on the array for a perfect rectangle
+  for (let i: number = 1; i < fieldSize; ++i)
     field[i * (fieldSize + 1) - 1] = '\n';
-  }
 
-  // set the Bomb and save the numbers that have to be set
-  for (let i = 0; i < numberOfBombs; i++) {
+  // set the bomb and save the numbers that have to be set
+  for (let i: number = 0; i < numberOfBombs; ++i) {
     bombCoordinates = Math.floor(Math.random() * Math.floor(field.length));
     if (
       field[bombCoordinates] == spoilers + '💣' + spoilers ||
       field[bombCoordinates] == '\n' ||
       bombCoordinates == firstField
     ) {
-      i--;
+      --i;
     } else {
       field[bombCoordinates] = spoilers + '💣' + spoilers;
 
-      for (var y = 0; y < possibleNumbers.length; y++) {
+      for (let y: number = 0; y < possibleNumbers.length; y++) {
         if (
           field[bombCoordinates + possibleNumbers[y]] != '\n' &&
           field[bombCoordinates + possibleNumbers[y]] !=
@@ -274,39 +266,22 @@ async function generateField(
   // set the numbers in the field
   coordinatesWithNotZeroOrBomb.forEach(async (theCoordinate) => {
     if (field[theCoordinate] != spoilers + '💣' + spoilers) {
-      switch (theActualNumber[theCoordinate]) {
-        case 1:
-          field[theCoordinate] = spoilers + ':one:' + spoilers;
-          break;
-        case 2:
-          field[theCoordinate] = spoilers + ':two:' + spoilers;
-          break;
-        case 3:
-          field[theCoordinate] = spoilers + ':three:' + spoilers;
-          break;
-        case 4:
-          field[theCoordinate] = spoilers + ':four:' + spoilers;
-          break;
-        case 5:
-          field[theCoordinate] = spoilers + ':five:' + spoilers;
-          break;
-        case 6:
-          field[theCoordinate] = spoilers + ':six:' + spoilers;
-          break;
-        case 7:
-          field[theCoordinate] = spoilers + ':seven:' + spoilers;
-          break;
-        case 8:
-          field[theCoordinate] = spoilers + ':eight:' + spoilers;
-          break;
-        case 9:
-          field[theCoordinate] = spoilers + ':nine:' + spoilers;
-          break;
-        default:
-          // there is no emoji for more than nine so...
-          field[theCoordinate] = spoilers + '❗' + spoilers;
-          break;
-      }
+      const numbers: Array<string> = [
+        discord.decor.Emojis.ONE,
+        discord.decor.Emojis.TWO,
+        discord.decor.Emojis.THREE,
+        discord.decor.Emojis.FOUR,
+        discord.decor.Emojis.FIVE,
+        discord.decor.Emojis.SIX,
+        discord.decor.Emojis.SEVEN,
+        discord.decor.Emojis.EIGHT,
+        discord.decor.Emojis.NINE
+      ];
+      if (theActualNumber[theCoordinate] - 1 < numbers.length)
+        field[theCoordinate] =
+          spoilers + numbers[theActualNumber[theCoordinate] - 1] + spoilers;
+      // there is no emoji for more than nine so...
+      else field[theCoordinate] = spoilers + '❗' + spoilers;
     }
   });
 
