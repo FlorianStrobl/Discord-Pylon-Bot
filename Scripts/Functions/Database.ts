@@ -1,4 +1,4 @@
-// Florian Crafter - 02.2021 - Version 1.6
+// Florian Crafter - 02.2021 - Version 1.6a
 // Question about or need help for the code? DM Clash Crafter#7370 on Discord
 
 // READ AT LEAST THE CAPSLOCK LINES & EDIT THE LINES WITH // EDIT AT THE END
@@ -123,11 +123,19 @@ export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
 
 // DO NOT LOOP OVER THIS (more then 10 times)
 export async function SaveData(
-  data: DataStructure,
+  data: DataStructure | DataStructure[],
   namespace?: string
 ): Promise<boolean> {
   // Index is already in database => update object.
   // Index isn't in the database => save as new object.
+
+  // If it is an array, do all the task and return if every single one of them, was succesfully done. TODO return the array if you need to know wich one worked and which one failed.
+  if (Array.isArray(data)) {
+    let workedForAll: boolean[] = [];
+    for (let i: number = 0; i < data.length; ++i)
+      workedForAll.push(await SaveData(data[i], namespace));
+    return !workedForAll.includes(false);
+  }
 
   // get the KV
   let KV: pylon.KVNamespace;
@@ -194,10 +202,18 @@ export async function SaveData(
 
 // DO NOT LOOP OVER THIS (more then 10 times)
 export async function DeleteData(
-  index: string | number,
+  index: string | number | string[] | number[],
   namespace?: string
 ): Promise<boolean> {
   // If index isn't in the database => return false.
+
+  // If it is an array, do all the task and return if every single one of them, was succesfully done. TODO return the array if you need to know wich one worked and which one failed.
+  if (Array.isArray(index)) {
+    let workedForAll: boolean[] = [];
+    for (let i: number = 0; i < index.length; ++i)
+      workedForAll.push(await DeleteData(index[i], namespace));
+    return !workedForAll.includes(false);
+  }
 
   // get the KV
   let KV: pylon.KVNamespace;
@@ -232,9 +248,18 @@ export async function DeleteData(
 
 // DO NOT LOOP OVER THIS (more then 10 times)
 export async function GetData(
-  index: string | number,
+  index: string | number | (string | number)[],
   namespace?: string
-): Promise<DataStructure | undefined> {
+): Promise<DataStructure | (DataStructure | undefined)[] | undefined> {
+  // If it is an array, do all the task and return if every single one of them, was succesfully done. TODO return the array if you need to know wich one worked and which one failed.
+  if (Array.isArray(index)) {
+    let data: (DataStructure | undefined)[] = [];
+    for (let i: number = 0; i < index.length; ++i)
+      // @ts-ignore This won't return a (DataStructure | undefined)[] because you give it only a single string/number.
+      data.push(await GetData(index[i], namespace));
+    return data;
+  }
+
   // get the KV
   let KV: pylon.KVNamespace;
   if (namespace !== undefined && namespace !== null)
@@ -306,6 +331,7 @@ export async function UpdateDataValues(
   else KV = Default_KV;
 
   // try get current data
+  // @ts-ignore it won't return a array
   let data: DataStructure | undefined = await GetData(index, KV.namespace);
   if (data === undefined) return false;
 
@@ -332,6 +358,7 @@ export async function DuplicateData(
     KV = new pylon.KVNamespace(namespace);
   else KV = Default_KV;
 
+  // @ts-ignore it won't return a array
   let data: DataStructure | undefined = await GetData(oldIndex, KV.namespace);
 
   // old key doesnt exist or new key is used already
@@ -349,11 +376,17 @@ export async function DuplicateData(
 }
 
 // check if an index exists
-export const IndexExist = async (
-  index: string | number,
+export async function IndexExist(
+  index: string | number | (string | number)[],
   namespace?: string
-): Promise<boolean> =>
-  (await GetData(index, namespace ?? defaultNamespace)) !== undefined;
+): Promise<boolean | boolean[]> {
+  if (Array.isArray(index)) {
+    let exists: boolean[] = [];
+    for (let i: number = 0; i < index.length; ++i)
+      exists.push((await GetData(index, namespace)) !== undefined);
+    return exists;
+  } else return (await GetData(index, namespace)) !== undefined;
+}
 
 export async function ChangeIndex(
   oldIndex: string | number,
@@ -368,6 +401,7 @@ export async function ChangeIndex(
     KV = new pylon.KVNamespace(namespace);
   else KV = Default_KV;
 
+  // @ts-ignore it won't return a array
   let data: DataStructure | undefined = await GetData(oldIndex, KV.namespace);
   if (
     data === undefined ||
