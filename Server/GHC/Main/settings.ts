@@ -1,20 +1,10 @@
 // Settings
 
-// three apis in use
-
 import * as Definitions from './definitions';
 
 export const enabled: boolean = true; // enable/disable EVERYTHING
-export const prefixes: Array<string> = ['.', '!']; // prefix for cmds of the bot
 
-// different colors for e.g. embeds
-export const enum Color {
-  DEFAULT = 0x3f888f, // default color
-  ERROR = 0xff0000, // error color
-  RED = 0xff0000, // bad thing color
-  ORANGE = 0xffa500,
-  GREEN = 0x00ff00
-}
+export const prefixes: Array<string> = ['.', '!']; // prefix for cmds of the bot
 
 // msgs on user join for #welcome
 export const welcomeMsgs: Array<string> = [
@@ -48,14 +38,36 @@ export const blackListedWords: Array<Definitions.badWords> = [
   { word: 'hure', whitelistedChannels: [Channels.PURGE] }
 ];
 
+// messages from the bot
+export const botMessages: Definitions.botMsg = {
+  en: {
+    botDisabled: `The bot is currently disabled.`,
+    cmdNotActive: `Command is not enabled.`, // msg if the given cmd isn't active
+    cmdCooldownMsg: `You are still in cooldown. Wait x seconds!`, // msg if the given user is still in cmd cooldown
+    cmdNotChannel: `Command(s) can't be executed in this channel.`, // msg if the given cmd is in a blocked channel
+    cmdNotPassword: `Command got the wrong password.`, // wrong password
+    cmdNoPerms: `@user You don't have the permission to use this command!` // msg if the user don't have the permissions to use a cmd
+  },
+  de: {},
+  fr: {}
+};
+
 export const nrElementsPage: number = 5; // nr of cmds showen on one page of the help cmd
 export const passwordLength: number = 8; // length of the password
 export const banIdLength: number = 5; // length of the ban id
+export const applyReactionDelay: number = 7 * 60 * 60 * 24; // Time in seconds in which the user can't apply
 
 export const optionsTrue: Array<string> = ['true', '1', 'start', 'open']; // accepted bools for an cmd
 export const optionsFalse: Array<string> = ['false', '0', 'stop', 'close']; // accepted bools for an cmd
 
-export const applyReactionDelay: number = 7 * 60 * 60 * 24; // Time in seconds in which the user can't apply
+// different colors for e.g. embeds
+export const enum Color {
+  DEFAULT = 0x3f888f, // default color
+  ERROR = 0xff0000, // error color
+  RED = 0xff0000, // bad thing color
+  ORANGE = 0xffa500,
+  GREEN = 0x00ff00
+}
 
 // Reaction emojis
 export const enum Emojis {
@@ -64,6 +76,22 @@ export const enum Emojis {
   QUESTION = '❔',
   APPLY = '📨'
 }
+
+// roles/users who can't apply in the #apply chat
+export const cantApply: Array<string> = [
+  Roles.GHCTEAM,
+  Roles.TESTMOD,
+  Roles.BLOCKED
+];
+
+export const immunePunish: Array<string> = [Roles.GHCTEAM]; // roles/users which can't be punished with the punish cmd
+export const immuneCooldown: Array<string> = []; // roles/users which don't have a cooldown on a cmd TODO
+export const blackListedWordsImmune: Array<string> = []; // User and roles which are immune to the word blacklist
+export const noCommands: Array<string> = [
+  Roles.BLOCKED,
+  Channels.FEEDBACK,
+  Channels.MAINTENANCE
+]; // roles/users/channels which can't use commands
 
 // order of roles permission
 export const RolePerms: Array<string> = [
@@ -79,208 +107,6 @@ export const RolePerms: Array<string> = [
   Roles.ADMINPLUS,
   Roles.COOWNER,
   Roles.OWNER
-];
-
-// roles/users who can't apply in the #apply chat
-export const cantApply: Array<string> = [
-  Roles.GHCTEAM,
-  Roles.TESTMOD,
-  Roles.BLOCKED
-];
-
-export const immunePunish: Array<string> = [Roles.GHCTEAM]; // roles/users which can't be punished with the punish cmd
-export const immuneCooldown: Array<string> = []; // roles/users which don't have a cooldown on a cmd TODO
-export const blackListedWordsImmune: Array<string> = []; // User and roles which are immune to the word blacklist
-export const noCommands: Array<string> = [Roles.BLOCKED, Channels.FEEDBACK]; // roles/users/channels which can't use commands
-
-export const botDisabledMsg: string = `The bot is currently disabled.`;
-export const cmdNotActiveMsg: string = `Command is not enabled.`; // msg if the given cmd isn't active
-export const cmdCooldownMsg: string = `You are still in cooldown. Wait x seconds!`; // msg if the given user is still in cmd cooldown
-export const cmdNotChannel: string = `Command(s) can't be executed in this channel.`; // msg if the given cmd is in a blocked channel
-export const cmdNotPassword: string = `Command got the wrong password.`; // wrong password
-export const cmdNoPerms: string = `@user You don't have the permission to use this command!`; // msg if the user don't have the permissions to use a cmd
-
-// #region not to edit
-export const botCount: number = 4; // number of bots on the server
-
-export const charactersForRandString: string =
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'; // characters to use if random id is needed
-
-export const discordTimeShift: number = 1420070400000;
-export const maxSizePerKey: number = 8196; // max number of bytes in an array
-export const timeShift: number = 7 * 24 * 60 * 60 * 1000; // milliseconds for one week
-
-export const numberEmojis: Array<string> = [
-  discord.decor.Emojis.ONE,
-  discord.decor.Emojis.TWO,
-  discord.decor.Emojis.THREE,
-  discord.decor.Emojis.FOUR,
-  discord.decor.Emojis.FIVE,
-  discord.decor.Emojis.SIX,
-  discord.decor.Emojis.SEVEN,
-  discord.decor.Emojis.EIGHT,
-  discord.decor.Emojis.NINE
-];
-// #endregion
-
-// the msgs from the bot
-export const GHC_MSGS: Array<Definitions.GHC_MSG> = [
-  {
-    Author: true,
-    img: `https://media.discordapp.net/attachments/719937675301486692/803689580632604693/pngwing.com2.png?width=1003&height=675`,
-    Title: 'Infos und Regeln',
-    Description: `**► §1 – Allgemeine Regeln**
-
-          ● Freundlichkeit & Höflichkeit hat oberste Priorität. Streit braucht keiner!
-
-          ● Nicknames dürfen keine beleidigenden oder anderen verbotenen Namen oder Namensteile enthalten, zudem dürfen keine Namen kopiert werden, sich als jemand anderes ausgegeben werden oder andere Leute damit gestört werden. Sie müssen mit mindestens drei ASCII Zeichen anfangen.
-
-          ● Private Daten wie Telefonnr., Adressen, Passwörter, private Bilder, etc. dürfen nicht öffentlich ausgetauscht werden, zudem dürfen Daten ohne Erlaubnis des Besitzers nicht weitergegeben werden – auch nicht privat.
-
-          ● Beleidigungen, provokante Diskussionen und jegliche Art von Spam sind zu unterlassen.
-
-          ● Fremdwerbung jeglicher Art ist strengstens untersagt. Auch über unseren Server als Privatnachricht an User.
-
-          ● Bewusste Falschaussagen / Trolling ist untersagt.
-
-          ● Pornografisches Material, Rassismus und Antisemitismus in jeglicher Form wird nicht geduldet.
-          
-          ● Aussagen/Verbreitung von Material zu Gewalt, Sexismus, Rauschgiften und Weiteres ist untersagt.
-
-          ● Anstiften zu Regelbrüchen ist verboten.
-
-          ● Nachrichten sollten der Channel Vorgabe entsprechen.
-
-          ● Account Sharing aller Art ist verboten. Das Limit an Accounts pro Person beträgt zwei.
-
-          ● Events stören oder behindern ist verboten.
-
-          ● Teammitglieder werden zu keinem Zeitpunkt nach sensiblen Daten fragen.
-          `,
-    Fields: [
-      {
-        name: '► §2 – Zusatzregeln für Voice-Chats/Voice-Channels',
-        value: `
-          ● Unter keinen Umständen darf die Stimme (+ LIVE-Übertragungen) anderer User ohne deren Einverständnis aufgenommen werden.
-
-          ● Channel-hopping (ständiges wechseln von einem in einen anderen Channel) ist verboten.
-
-          ● Respektiert andere Meinungen.
-
-          ● Absichtliche oder unabsichtliche Störgeräusche sind zu vermeiden.\n
-        `
-      },
-      {
-        name: '► §3 – Zusatzregeln für den Chat',
-        value: `
-          ● Der Chat ist nicht zum Frust ablassen da, also keine Aggressivität oder Diskussionen.
-
-          ● Kein Spam, darunter fällt auch häufiges Verwenden von Emojis. (Ausnahme <#${Channels.SPAM}>; siehe §5)
-
-          ● Kein Capslock.
-
-          ● Angelegenheiten mit dem Team werden bitte per Privatchat besprochen.\n
-          `
-      },
-      {
-        name: '► §4 – Bots',
-        value: `
-          ● Trolling mit Musikbots ist untersagt. Darunter gilt auch, dass absichtliche klauen des Musikbot aus einem anderen Channel.
-
-          ● Befehle für den Musikbot sind in <#${Channels.MUSIC}> auszuführen.
-
-          ● Es darf lediglich nach §1 erlaubtes Material abgespielt werden.
-          `
-      },
-      {
-        name: '► §5 – Ausnahmeregeln für spezifische Channel',
-        value: `   
-              \t► §5.1 – Spam Channel
-
-              \t● Pornografisches Material, Rassismus und Antisemitismus in jeglicher Form wird nicht geduldet.
-            
-              \t► §5.2 – Purge Channel
-
-              \t● Es ist alles erlaubt mit Ausnahme von Rassismus und Antisemitismus. Schwarzer Humor ist toleriert, wenn man es als dieses ausdrücklich Kennzeichnet.
-
-            ● In beiden Channeln darf in sämtlicher Art gespamt werden.
-            `
-      },
-      {
-        name: '► §6 Konsequenzen bei Regelbruch',
-        value: `
-          ● Unwissenheit schützt dich nicht vor Konsequenzen.
-
-          ● Anweisungen von Teammitgliedern ist Folge zu leisten.
-
-          ● Wir behalten uns vor bei größeren und in kürzester Zeit häufigen Vergehen, sofort die Person vom Server zu bannen.
-
-          ● Wir sind nicht gewillt, Mitglieder zu dulden, die sich bewusst in den Grauzonen unseres Regelwerks bewegen.
-
-          ● Jeder Regelbruch wird geahndet, in der Regel als Verwarnung.
-
-          ● Sammelt man mehrere Verwarnungen, werden weitere Konsequenzen bis hin zum Auschluss im nächsten Teammeeting besprochen.
-
-          ● Wird eine Aktion des Teams als nicht in Ordnung erachtet, wird das der Administration via Privatnachricht oder über den Report Command mitgeteilt und nicht öffentlich diskutiert oder angeheizt.
-          `
-      },
-      {
-        name: '► Weiteres',
-        value: `
-          ► Ihr habt Fragen, Probleme mit anderen Usern oder habt einen Regelbrecher gefunden?
-
-          ● Meldet das gerne einem Teammitglied in <#${Channels.FEEDBACK}> oder via Privatnachricht
-          `
-      }
-    ]
-  },
-  {
-    Author: true,
-    Title: 'Feedback',
-    Description: `**Achtung:** Du kannst hier nur **einmal pro Stunde** etwas schreiben!
-    
-    Wenn du eine Idee hast, wie man diesen Server verbessern könnte oder du einen Bug gefunden hast, dann schreib bitte eine Nachricht hier rein und wir versuchen den Server zu verbessern! Solltest du einen User reporten wollen **dann mach das bitte nicht hier**, sondern nutze den *.report [@username] [Grund]*  Command in einem anderen Channel (keine Sorgen, deine Nachricht wird sofort für alle unsichtbar.) Solltest du jemandem ohne __triftigen__ Grund reporten, gilt dies als **Regelbruch**!`
-  },
-  {
-    Author: true,
-    Title: 'Bewerben',
-    Description: `Du möchtest gerne GHC Team-Mitglied werden?\n\nDann reagiere bitte auf diese Nachricht und fülle das Formular aus, welches du dann innerhalb **einer Woche** per DM an den Owner sendest.\n\nSollten wir deine Bewerbung für gut empfinden, werden wir uns auf einen Termin einigen, an dem du dann mit dem Owner und/oder zwei Admins ein Bewerbungsgespräch führen wirst. Im Anschluss durchläufst du eine drei Monate andauernde Testphase. Wenn du sie bestehst, enscheiden wir dann abschließend über deine Team-Mitgliedschaft.\n\nBei Fragen bitte an einen Admin wenden.\n\n**Du kannst dich nur einmal pro Woche bewerben!\nSolltest du deine Bewerbung zurück nehmen wollen, dann entferne doch bitte deine Reaktion.**\n\n- Das GHC Team`
-  },
-  {
-    Title: 'Serverwartungen',
-    Description: `Wir haben derzeit **Serverwartungen**. Bis zum Abschluss der Wartung müsst ihr erstmal hier schreiben.`
-  },
-  {
-    Title: 'Supporter',
-    Description: `<@&${Roles.BOOSTER}>/<@&${Roles.DONATOR}> Vielen Dank, dass du den GHC Server supportest! Hier kannst du dich mit anderen Supportern austauschen!`
-  },
-  {
-    Author: true,
-    Title: 'GHC Team',
-    Description: `Was soll ich als Moderator tun? Welche Rechte habe ich als Moderator? Wie dokumentiere ich meine Arbeit richtig? Wie kann ich aufsteigen?`,
-    Fields: [
-      {
-        name: 'Was Mods bei uns tun:',
-        value: `Sorge für Ordnung auf diesen Server! Sollte eine Regeln gebrochen werden (**Alle bei uns geltende Regeln:** <#${Channels.RULES}>) darfst du deine Sonderrechte benutzten, doch bedenke dabei **alles** richtig zu dokumentieren, denn solltest du mehrfach reportet werden oder wir halten dich nicht mehr für kompetent genug, dann verlierst du deine Sonderrechte und kannst sogar gebannt werden!`
-      },
-      {
-        name: 'Rechte:',
-        value: `[<@&${Roles.MODJR}>]: \n Du kannst in Voicechats:\n__- Leute muten/deafen/moven__\nDu kannst in Textchats:\n__- Einzelne Nachrichten manuell löschen oder mit dem <@&720676666170540172> Befehl *!clear*  Spam Nachrichten löschen.__\n\n[<@&${Roles.MOD}>]:\nDu hast alle Rechte die der <@&${Roles.MODJR}> hat +\n__- <@&${Roles.MEMBER}> die <@&${Roles.BLOCKED}> Rolle geben/entfernen in dem du den *.warn/unwarn [@username] [Grund]* Command benutzt.__\n\n[<@&${Roles.MOD}>]:\nDu warst ein langjähriger <@&${Roles.MOD}>!\n\n[<@&${Roles.ADMINJR}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMIN}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMINPLUS}>]:\nDu bist ein Admin! __Du kannst **alles**__!`
-      },
-      {
-        name: 'Dokumentation...:',
-        value: `__... in Textchats:__\n- Mach Screenshots von den Nachrichten bevor du welche löschst und schick sie einem <@&${Roles.ADMIN}> über, ein von uns voreingestellstes Formular!\n- Jemand hat eine Regel gebrochen und du gibst ihm jetzt die <@&${Roles.BLOCKED}> Rolle? Dann mach von **jedem** wichtigen Detail ein Screenshot und sende diese wieder über das Formular an einem <@&${Roles.ADMIN}>!\n\n__... in Voicechats:__\n- Mach ein Screenshot von dem Voicechat in dem gerade eine Regel gebrochen wird, bei dem der Täter **und** du zu sehen sind (du musst natürlich manuell nachschauen ob gerade wirklich eine Regel nach dem Stgb Absatz: <#${Channels.RULES}> gebrochen wird) und sende dieses Screenshot an einem <@&${Roles.ADMIN}>.`
-      },
-      {
-        name: 'Aufsteigen:',
-        value: `Du bist jetzt also ein <@&${Roles.MODJR}> und willst aufsteigen? Nachdem du **drei Verifizierte arbeiten** gemacht hast und seit mindestens **drei Monaten** Moderator bist, kannst du zum voll wertigen <@&${Roles.GHCTEAM}>-Member werden und die Rolle: <@&${Roles.MOD}> bekommen!`
-      },
-      {
-        name: 'Einverständniserklärung',
-        value: `**Du hast diese Regeln gelesen, dann reagiere auf diese Nachricht und stimme ihnen somit zu.**`
-      }
-    ]
-  }
 ];
 
 // IDs
@@ -357,7 +183,7 @@ export const serverStatsCommand: Definitions.command = {
   permLvl: Definitions.PermsRolesEnum.EVERYONE
 };
 export const pingCommand: Definitions.command = {
-  enabled: false,
+  enabled: true,
   name: 'ping',
   altNames: ['connection'],
   description: `See the current ping of the GHC Bot. (If he seems to lag: maybe it's Discord and not him...)`,
@@ -651,3 +477,186 @@ export const cmds: Array<Definitions.command> = [
   stopCommand
 ];
 // #endregion
+
+// #region not to edit
+export const botCount: number = 5; // number of bots on the server
+
+export const charactersForRandString: string =
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'; // characters to use if random id is needed
+
+export const maxSizePerKey: number = 8196; // max number of bytes in an array
+export const discordTimeShift: number = 1420070400000; // time shift compared to unix time
+export const timeShift: number = 7 * 24 * 60 * 60 * 1000; // milliseconds for one week
+
+export const numberEmojis: Array<string> = [
+  discord.decor.Emojis.ONE,
+  discord.decor.Emojis.TWO,
+  discord.decor.Emojis.THREE,
+  discord.decor.Emojis.FOUR,
+  discord.decor.Emojis.FIVE,
+  discord.decor.Emojis.SIX,
+  discord.decor.Emojis.SEVEN,
+  discord.decor.Emojis.EIGHT,
+  discord.decor.Emojis.NINE
+];
+// #endregion
+
+// the msgs from the bot
+export const GHC_MSGS: Array<Definitions.GHC_MSG> = [
+  {
+    Author: true,
+    img: `https://media.discordapp.net/attachments/719937675301486692/803689580632604693/pngwing.com2.png?width=1003&height=675`,
+    Title: 'Infos und Regeln',
+    Description: `**► §1 – Allgemeine Regeln**
+
+          ● Freundlichkeit & Höflichkeit hat oberste Priorität. Streit braucht keiner!
+
+          ● Nicknames dürfen keine beleidigenden oder anderen verbotenen Namen oder Namensteile enthalten, zudem dürfen keine Namen kopiert werden, sich als jemand anderes ausgegeben werden oder andere Leute damit gestört werden. Sie müssen mit mindestens drei ASCII Zeichen anfangen.
+
+          ● Private Daten wie Telefonnr., Adressen, Passwörter, private Bilder, etc. dürfen nicht öffentlich ausgetauscht werden, zudem dürfen Daten ohne Erlaubnis des Besitzers nicht weitergegeben werden – auch nicht privat.
+
+          ● Beleidigungen, provokante Diskussionen und jegliche Art von Spam sind zu unterlassen.
+
+          ● Fremdwerbung jeglicher Art ist strengstens untersagt. Auch über unseren Server als Privatnachricht an User.
+
+          ● Bewusste Falschaussagen / Trolling ist untersagt.
+
+          ● Pornografisches Material, Rassismus und Antisemitismus in jeglicher Form wird nicht geduldet.
+          
+          ● Aussagen/Verbreitung von Material zu Gewalt, Sexismus, Rauschgiften und Weiteres ist untersagt.
+
+          ● Anstiften zu Regelbrüchen ist verboten.
+
+          ● Nachrichten sollten der Channel Vorgabe entsprechen.
+
+          ● Account Sharing aller Art ist verboten. Das Limit an Accounts pro Person beträgt zwei.
+
+          ● Events stören oder behindern ist verboten.
+
+          ● Teammitglieder werden zu keinem Zeitpunkt nach sensiblen Daten fragen.
+          `,
+    Fields: [
+      {
+        name: '► §2 – Zusatzregeln für Voice-Chats/Voice-Channels',
+        value: `
+          ● Unter keinen Umständen darf die Stimme (+ LIVE-Übertragungen) anderer User ohne deren Einverständnis aufgenommen werden.
+
+          ● Channel-hopping (ständiges wechseln von einem in einen anderen Channel) ist verboten.
+
+          ● Respektiert andere Meinungen.
+
+          ● Absichtliche oder unabsichtliche Störgeräusche sind zu vermeiden.\n
+        `
+      },
+      {
+        name: '► §3 – Zusatzregeln für den Chat',
+        value: `
+          ● Der Chat ist nicht zum Frust ablassen da, also keine Aggressivität oder Diskussionen.
+
+          ● Kein Spam, darunter fällt auch häufiges Verwenden von Emojis. (Ausnahme <#${Channels.SPAM}>; siehe §5)
+
+          ● Kein Capslock.
+
+          ● Angelegenheiten mit dem Team werden bitte per Privatchat besprochen.\n
+          `
+      },
+      {
+        name: '► §4 – Bots',
+        value: `
+          ● Trolling mit Musikbots ist untersagt. Darunter gilt auch, dass absichtliche klauen des Musikbot aus einem anderen Channel.
+
+          ● Befehle für den Musikbot sind in <#${Channels.MUSIC}> auszuführen.
+
+          ● Es darf lediglich nach §1 erlaubtes Material abgespielt werden.
+          `
+      },
+      {
+        name: '► §5 – Ausnahmeregeln für spezifische Channel',
+        value: `   
+              \t► §5.1 – Spam Channel
+
+              \t● Pornografisches Material, Rassismus und Antisemitismus in jeglicher Form wird nicht geduldet.
+            
+              \t► §5.2 – Purge Channel
+
+              \t● Es ist alles erlaubt mit Ausnahme von Rassismus und Antisemitismus. Schwarzer Humor ist toleriert, wenn man es als dieses ausdrücklich Kennzeichnet.
+
+            ● In beiden Channeln darf in sämtlicher Art gespamt werden.
+            `
+      },
+      {
+        name: '► §6 Konsequenzen bei Regelbruch',
+        value: `
+          ● Unwissenheit schützt dich nicht vor Konsequenzen.
+
+          ● Anweisungen von Teammitgliedern ist Folge zu leisten.
+
+          ● Wir behalten uns vor bei größeren und in kürzester Zeit häufigen Vergehen, sofort die Person vom Server zu bannen.
+
+          ● Wir sind nicht gewillt, Mitglieder zu dulden, die sich bewusst in den Grauzonen unseres Regelwerks bewegen.
+
+          ● Jeder Regelbruch wird geahndet, in der Regel als Verwarnung.
+
+          ● Sammelt man mehrere Verwarnungen, werden weitere Konsequenzen bis hin zum Auschluss im nächsten Teammeeting besprochen.
+
+          ● Wird eine Aktion des Teams als nicht in Ordnung erachtet, wird das der Administration via Privatnachricht oder über den Report Command mitgeteilt und nicht öffentlich diskutiert oder angeheizt.
+          `
+      },
+      {
+        name: '► Weiteres',
+        value: `
+          ► Ihr habt Fragen, Probleme mit anderen Usern oder habt einen Regelbrecher gefunden?
+
+          ● Meldet das gerne einem Teammitglied in <#${Channels.FEEDBACK}> oder via Privatnachricht
+          `
+      }
+    ]
+  },
+  {
+    Author: true,
+    Title: 'Feedback',
+    Description: `**Achtung:** Du kannst hier nur **einmal pro Stunde** etwas schreiben!
+    
+    Wenn du eine Idee hast, wie man diesen Server verbessern könnte oder du einen Bug gefunden hast, dann schreib bitte eine Nachricht hier rein und wir versuchen den Server zu verbessern! Solltest du einen User reporten wollen **dann mach das bitte nicht hier**, sondern nutze den *.report [@username] [Grund]*  Command in einem anderen Channel (keine Sorgen, deine Nachricht wird sofort für alle unsichtbar.) Solltest du jemandem ohne __triftigen__ Grund reporten, gilt dies als **Regelbruch**!`
+  },
+  {
+    Author: true,
+    Title: 'Bewerben',
+    Description: `Du möchtest gerne GHC Team-Mitglied werden?\n\nDann reagiere bitte auf diese Nachricht und fülle das Formular aus, welches du dann innerhalb **einer Woche** per DM an den Owner sendest.\n\nSollten wir deine Bewerbung für gut empfinden, werden wir uns auf einen Termin einigen, an dem du dann mit dem Owner und/oder zwei Admins ein Bewerbungsgespräch führen wirst. Im Anschluss durchläufst du eine drei Monate andauernde Testphase. Wenn du sie bestehst, enscheiden wir dann abschließend über deine Team-Mitgliedschaft.\n\nBei Fragen bitte an einen Admin wenden.\n\n**Du kannst dich nur einmal pro Woche bewerben!\nSolltest du deine Bewerbung zurück nehmen wollen, dann entferne doch bitte deine Reaktion.**\n\n- Das GHC Team`
+  },
+  {
+    Title: 'Serverwartungen',
+    Description: `Wir haben derzeit **Serverwartungen**. Bis zum Abschluss der Wartung müsst ihr erstmal hier schreiben.`
+  },
+  {
+    Title: 'Supporter',
+    Description: `<@&${Roles.BOOSTER}>/<@&${Roles.DONATOR}> Vielen Dank, dass du den GHC Server supportest! Hier kannst du dich mit anderen Supportern austauschen!`
+  },
+  {
+    Author: true,
+    Title: 'GHC Team',
+    Description: `Was soll ich als Moderator tun? Welche Rechte habe ich als Moderator? Wie dokumentiere ich meine Arbeit richtig? Wie kann ich aufsteigen?`,
+    Fields: [
+      {
+        name: 'Was Mods bei uns tun:',
+        value: `Sorge für Ordnung auf diesen Server! Sollte eine Regeln gebrochen werden (**Alle bei uns geltende Regeln:** <#${Channels.RULES}>) darfst du deine Sonderrechte benutzten, doch bedenke dabei **alles** richtig zu dokumentieren, denn solltest du mehrfach reportet werden oder wir halten dich nicht mehr für kompetent genug, dann verlierst du deine Sonderrechte und kannst sogar gebannt werden!`
+      },
+      {
+        name: 'Rechte:',
+        value: `[<@&${Roles.MODJR}>]: \n Du kannst in Voicechats:\n__- Leute muten/deafen/moven__\nDu kannst in Textchats:\n__- Einzelne Nachrichten manuell löschen oder mit dem <@&720676666170540172> Befehl *!clear*  Spam Nachrichten löschen.__\n\n[<@&${Roles.MOD}>]:\nDu hast alle Rechte die der <@&${Roles.MODJR}> hat +\n__- <@&${Roles.MEMBER}> die <@&${Roles.BLOCKED}> Rolle geben/entfernen in dem du den *.warn/unwarn [@username] [Grund]* Command benutzt.__\n\n[<@&${Roles.MOD}>]:\nDu warst ein langjähriger <@&${Roles.MOD}>!\n\n[<@&${Roles.ADMINJR}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMIN}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMINPLUS}>]:\nDu bist ein Admin! __Du kannst **alles**__!`
+      },
+      {
+        name: 'Dokumentation...:',
+        value: `__... in Textchats:__\n- Mach Screenshots von den Nachrichten bevor du welche löschst und schick sie einem <@&${Roles.ADMIN}> über, ein von uns voreingestellstes Formular!\n- Jemand hat eine Regel gebrochen und du gibst ihm jetzt die <@&${Roles.BLOCKED}> Rolle? Dann mach von **jedem** wichtigen Detail ein Screenshot und sende diese wieder über das Formular an einem <@&${Roles.ADMIN}>!\n\n__... in Voicechats:__\n- Mach ein Screenshot von dem Voicechat in dem gerade eine Regel gebrochen wird, bei dem der Täter **und** du zu sehen sind (du musst natürlich manuell nachschauen ob gerade wirklich eine Regel nach dem Stgb Absatz: <#${Channels.RULES}> gebrochen wird) und sende dieses Screenshot an einem <@&${Roles.ADMIN}>.`
+      },
+      {
+        name: 'Aufsteigen:',
+        value: `Du bist jetzt also ein <@&${Roles.MODJR}> und willst aufsteigen? Nachdem du **drei Verifizierte arbeiten** gemacht hast und seit mindestens **drei Monaten** Moderator bist, kannst du zum voll wertigen <@&${Roles.GHCTEAM}>-Member werden und die Rolle: <@&${Roles.MOD}> bekommen!`
+      },
+      {
+        name: 'Einverständniserklärung',
+        value: `**Du hast diese Regeln gelesen, dann reagiere auf diese Nachricht und stimme ihnen somit zu.**`
+      }
+    ]
+  }
+];
