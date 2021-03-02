@@ -4,57 +4,51 @@ import * as Functions from '../Main/functions';
 import * as Settings from '../Main/settings';
 import * as Definitions from '../Main/definitions';
 
-export async function NewPassword() {
+export async function NewPassword(): Promise<void> {
   if (!Settings.enabled) return;
 
   // generating new password
   let pwd: string = '';
-  for (let i: number = 0; i < Settings.passwordLength; i++) {
+  for (let i: number = 0; i < Settings.passwordLength; i++)
     pwd += Settings.charactersForRandString.charAt(
       Math.floor(Math.random() * Settings.charactersForRandString.length)
     );
-  }
 
   // password given to the admins
-  await discord.getGuildTextChannel(Settings.Channels.ADMIN).then(
-    async (c) =>
-      await c?.edit({
-        topic: `Das ist der **Admin Only** Chat. Passwort: ||${pwd}|| (Gültig bis zum: **${new Date(
-          Date.now() + Settings.timeShift
-        ).toLocaleDateString('de')}**).`
-      })
+  await discord.getGuildTextChannel(Settings.Channels.ADMIN).then((c) =>
+    c?.edit({
+      topic: `Das ist der **Admin Only** Chat. Passwort: ||${pwd}|| (Gültig bis zum: **${new Date(
+        Date.now() + Settings.timeShift
+      ).toLocaleDateString('de')}**).`
+    })
   );
 
   // save the new password
   await Definitions.KV.put(`pwd`, pwd);
 }
 
-export async function StatsChannels() {
+export async function StatsChannels(): Promise<void> {
   if (!Settings.enabled) return;
+
   const guild: discord.Guild = await discord.getGuild();
 
   // User count
-  await discord
-    .getGuildVoiceChannel(Settings.Channels.STATSUSER)
-    .then(async (c) => {
-      await c?.edit({
-        name:
-          'Members: ' +
-          ((guild.memberCount ?? 0) - Settings.botCount).toString()
-      });
-    });
+  await discord.getGuildVoiceChannel(Settings.Channels.STATSUSER).then((c) =>
+    c?.edit({
+      name:
+        'Members: ' + ((guild.memberCount ?? 0) - Settings.botCount).toString()
+    })
+  );
 
   // Boost count
-  await discord
-    .getGuildVoiceChannel(Settings.Channels.STATSBOOST)
-    .then(async (c) => {
-      await c?.edit({
-        name: 'Boosters: ' + guild.premiumSubscriptionCount.toString()
-      });
-    });
+  await discord.getGuildVoiceChannel(Settings.Channels.STATSBOOST).then((c) =>
+    c?.edit({
+      name: 'Boosters: ' + guild.premiumSubscriptionCount.toString()
+    })
+  );
 }
 
-export async function NewsMessages() {
+export async function NewsMessages(): Promise<void> {
   if (!Settings.enabled) return;
 
   // special day msg (only on the specified date with the specified text)
@@ -131,14 +125,3 @@ export async function NewsMessages() {
     }
   }
 }
-
-/*
-  // "fact of the day" on 11h utc
-  if (new Date().getHours() + 1 === 11 && false) {
-    const req: Response = await fetch(
-      'https://uselessfacts.jsph.pl/random.json?language=de'
-    );
-    const data: any = await req.json();
-    await Functions.MsgNewschannel(data['text'], 'Fact of the day');
-  }
-*/
