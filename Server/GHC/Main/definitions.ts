@@ -51,6 +51,33 @@ export interface command {
     | PermsRolesEnum.OWNER; // Roles abouve (inclusiv) can use the cmd. Also determins what is showen in .help
 }
 
+// all the different role permissions
+export const enum PermsRolesEnum {
+  EVERYONE = 0,
+  MEMBER = 1,
+  TESTMOD = 2,
+  GHCMEMBER = 3,
+  MODJR = 4,
+  MOD = 5,
+  MODPLUS = 6,
+  ADMINJR = 7,
+  ADMIN = 8,
+  ADMINPLUS = 9,
+  COOWNER = 10,
+  OWNER = 11
+}
+
+// infos about an user to store in KV
+export interface GHC_User extends pylon.JsonObject {
+  i: string; // the id of the user
+  l: string; // the setted language of the user
+  s: boolean; // current warn state of the user (false = blocked)
+  r: number; // number of times reported
+  g: number; // number of times blocked
+  c: number; // cooldown
+  m: number; // written message number
+}
+
 // Blacklisted words
 export interface badWords {
   word: string;
@@ -62,6 +89,27 @@ export interface NewsMsg {
   date: string; // date in the form of 'dd/mm/hh' in UTC+1 time
   text: string; // the msg which should be published in #news
   picture?: string; // optional url to picture
+}
+
+// values for help cmd to store in KV
+export interface HelpCmd extends pylon.JsonObject {
+  msg: string; // id of the help msg
+  permissionLvl: number; // for which permission grade, the cmd should be seen
+  language: string;
+}
+
+// internal use. The different messages from the bot
+export interface botMsg {
+  en: {
+    botDisabled: string;
+    cmdNotActive: string;
+    cmdCooldownMsg: string;
+    cmdNotChannel: string;
+    cmdNotPassword: string;
+    cmdNoPerms: string;
+  };
+  de: Object;
+  fr: Object;
 }
 
 // messages (embeds) written by pylon (like in #rules)
@@ -80,38 +128,4 @@ export interface WarnCase extends pylon.JsonObject {
   reason: string; // reason for the block
   caseId: string; // Id of the case
   date: string; // date of block
-}
-
-// infos about an user to store in KV
-export interface GHC_User extends pylon.JsonObject {
-  i: string; // the id of the user
-  l: string; // the setted language of the user
-  s: boolean; // current warn state of the user (false = blocked)
-  r: number; // number of times reported
-  g: number; // number of times blocked
-  c: number; // cooldown
-  m: number; // written message number
-}
-
-// values for help cmd to store in KV
-export interface HelpCmd extends pylon.JsonObject {
-  msg: string; // id of the help msg
-  permissionLvl: number; // for which permission grade, the cmd should be seen
-  language: string;
-}
-
-// all the different role permissions
-export const enum PermsRolesEnum {
-  EVERYONE = 0,
-  MEMBER = 1,
-  TESTMOD = 2,
-  GHCMEMBER = 3,
-  MODJR = 4,
-  MOD = 5,
-  MODPLUS = 6,
-  ADMINJR = 7,
-  ADMIN = 8,
-  ADMINPLUS = 9,
-  COOWNER = 10,
-  OWNER = 11
 }
