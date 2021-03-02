@@ -7,6 +7,7 @@
  * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
  * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
  * See an example code on: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/DatabaseExamples.ts".
+ * You want a undocumented version? Here: "https://gist.github.com/FlorianStrobl/219c6c0af240a2a576b28b7aebb744e8"!
  *
  * Store objects in Pylon now easily with these functions. The functions try to utilise every single byte
  * of the 8196 byte limit per key and if needed will create new keys. It works pretty much as the current KV system just without the 256 key limit.
