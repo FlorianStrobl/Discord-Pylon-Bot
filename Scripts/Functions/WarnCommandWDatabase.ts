@@ -108,7 +108,7 @@ WarnCommands.on(
 
     if (infos === undefined) await message.reply('No cases for this user!');
     else {
-      let msg: string = 'Warn cases:';
+      let msg: string = `Warn cases for user <@${user.user.id}>: `;
       console.log(infos);
       for (let i: number = 0; i < infos.reason.length; ++i) {
         console.log('once');
