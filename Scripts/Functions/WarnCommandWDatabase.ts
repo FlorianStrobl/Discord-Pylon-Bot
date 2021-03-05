@@ -15,6 +15,7 @@ interface structure {
   index: string;
   reason: string[];
   author: string[];
+  timestamp: number[];
 }
 
 WarnCommands.on(
@@ -27,6 +28,7 @@ WarnCommands.on(
     reason: _arguments.text()
   }),
   async (message, { member, reason }) => {
+    console.log('exect');
     if (!message.member.roles.some((r) => adminRoles.includes(r))) {
       await message.reply('You are not permitted to use this command.');
       return;
@@ -68,7 +70,8 @@ WarnCommands.on(
         {
           index: `warncase-${member.user.id}`,
           reason: [reason],
-          author: [message.member.user.id]
+          author: [message.member.user.id],
+          timestamp: [Date.now()]
         },
         'warncases'
       );
@@ -79,6 +82,7 @@ WarnCommands.on(
         (data: structure) => {
           data.reason.push(reason);
           data.author.push(message.member.user.id);
+          data.timestamp.push(Date.now());
           return data;
         },
         'warncases'
@@ -88,7 +92,7 @@ WarnCommands.on(
 
 WarnCommands.on(
   {
-    name: 'get-warn',
+    name: 'get-warns',
     description: 'get warn infos about a user'
   },
   (_arguments) => ({
@@ -111,13 +115,12 @@ WarnCommands.on(
       let msg: string = `Warn cases for user <@${user.user.id}>: `;
       console.log(infos);
       for (let i: number = 0; i < infos.reason.length; ++i) {
-        console.log('once');
         msg = msg.replace(
           msg,
           msg +
             `\nAuthor: <@${infos.author[i] ?? 'no id'}>. Reason: ${infos.reason[
               i
-            ] ?? 'no reason'}`
+            ] ?? 'no reason'}. Timestamp: ${new Date(infos.timestamp[i])}.`
         );
       }
 
