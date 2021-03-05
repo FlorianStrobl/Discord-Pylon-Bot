@@ -1,3 +1,9 @@
+// Florian Crafter - 03.2021
+// IMPORTANT: I recommend to create a new file and give it a name like "WarnCommand.ts"
+// You have to go now to the "main.ts" and write at the top: import './WarnCommands';
+// Then do the second important step (the one below) and you can start with your commands!
+// Commands: !warn @user reason, !get-warns @user, !delete-warn @user
+
 const adminRoles: string[] = ['id'];
 const warnRole: string = 'id';
 const removeRole: string = 'id';
@@ -9,7 +15,9 @@ const WarnCommands: discord.command.CommandGroup = new discord.command.CommandGr
   }
 );
 
-import * as Database from './database'; // code here "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts"
+// IMPORTANT: create a file named: "database.ts" and copy and paste this code in it 
+// "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts"
+import * as Database from './database';
 
 interface structure {
   index: string;
