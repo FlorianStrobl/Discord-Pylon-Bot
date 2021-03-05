@@ -9,7 +9,7 @@ const WarnCommands: discord.command.CommandGroup = new discord.command.CommandGr
   }
 );
 
-import * as Database from './database';
+import * as Database from './database'; // code here "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts"
 
 interface structure {
   index: string;
