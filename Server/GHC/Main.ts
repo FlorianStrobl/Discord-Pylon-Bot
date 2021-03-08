@@ -28,13 +28,16 @@ Definitions.Commands.raw('t', async (msg) => {
     return d;
   };
 
+  const test = Date.now();
+  console.log(test);
+
   const delay: number = 1000 * 60 * 60 * 2;
 
   //await new pylon.KVNamespace('t').clear();
 
   const t = Date.now();
 
-  for (let i = 0; i < 1; i++) {
+  for (let i = 0; i < 0; i++) {
     console.log(
       await Database.SaveData(
         [
@@ -49,13 +52,13 @@ Definitions.Commands.raw('t', async (msg) => {
       )
     );
     console.log(await Database.UpdateDataValues(i, u, 't'));
-    console.log(await Database.GetData(i, 't'));
-    console.log(await Database.DuplicateData(i, (i + 1) * 10, u2, 't'));
+    console.log(await Database.GetData(i + 6, 't'));
+    console.log(await Database.DuplicateData(i, (i + 1) * 10, 't', u2));
     console.log(await Database.ChangeIndex(i, (i + 1) * 100, 't'));
-    console.log(await Database.IndexExist(i, 't'));
-    console.log(await Database.GetAllData((d) => d.data !== undefined, 't'));
-    console.log(await Database.AllIndexes((d) => d.data !== undefined, 't'));
-    console.log(await Database.DeleteData(i, 't'));
+    console.log(await Database.IndexExist(i + 1, 't'));
+    console.log(await Database.GetAllData('t', (d) => d.data !== undefined));
+    console.log(await Database.AllIndexes('t', (d) => d.data !== undefined));
+    console.log(await Database.DeleteData(i + 1, 't'));
     console.log(await Database.ResetDatabase(true, 't'));
   }
 
@@ -364,6 +367,8 @@ Definitions.Commands.raw(
   Command.GifCommand
 );
 
+// feedback 2000 characters
+
 // cooldown per user for cmds
 // punish with / as like normal cmd
 // key index, for KV
@@ -402,6 +407,9 @@ Definitions.Commands.raw(
 // XP system - .top lvl
 // auto color roles
 // auto roles
+
+// .help deleted after 10 min
+// no xp in #spam
 
 // 10 narichten lvl 1
 // lvl 2
