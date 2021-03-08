@@ -9,7 +9,7 @@ export async function NewPassword(): Promise<void> {
 
   // generating new password
   let pwd: string = '';
-  for (let i: number = 0; i < Settings.passwordLength; i++)
+  for (let i: number = 0; i < Settings.passwordLength; ++i)
     pwd += Settings.charactersForRandString.charAt(
       Math.floor(Math.random() * Settings.charactersForRandString.length)
     );
@@ -52,7 +52,7 @@ export async function NewsMessages(): Promise<void> {
   if (!Settings.enabled) return;
 
   // special day msg (only on the specified date with the specified text)
-  await Functions.MsgNewschannel(
+  await MsgNewschannel(
     Settings.newsMsgs.find(
       (nm) =>
         nm.date ===
@@ -89,7 +89,7 @@ export async function NewsMessages(): Promise<void> {
 
   if (new Date().getDay() === 5 && new Date().getHours() === 14) {
     // friday msg
-    await Functions.MsgNewschannel(
+    await MsgNewschannel(
       `Hoch die Hände Wochenende! 🎉  Es ist Freitag, schönes Wochenende an euch! <a:party_kermit:720587729351737436> <a:party_kermit:720587729351737436>`
     );
   } else if (
@@ -99,7 +99,7 @@ export async function NewsMessages(): Promise<void> {
     new Date().getHours() === 12
   ) {
     // easter msg
-    await Functions.MsgNewschannel('Schöne Ostern!');
+    await MsgNewschannel('Schöne Ostern!');
   } else if (
     new Date().getDay() === 0 &&
     new Date().getHours() + 1 === 13 &&
@@ -121,7 +121,34 @@ export async function NewsMessages(): Promise<void> {
       (new Date(fourInOneWeek).getDate() === 24 &&
         new Date(fourInOneWeek).getMonth() + 1 === 12)
     ) {
-      await Functions.MsgNewschannel(`Schönen Sonntag!`);
+      await MsgNewschannel(`Schönen Sonntag!`);
     }
   }
+}
+
+// send embed in #news with or without title
+async function MsgNewschannel(
+  description: string | undefined,
+  title?: string
+): Promise<void> {
+  if (!description) return;
+
+  await discord
+    .getGuildNewsChannel(Settings.Channels.NEWS)
+    .then(async (channel) => {
+      await channel?.sendMessage(
+        new discord.Embed({
+          color: Settings.Color.DEFAULT,
+          description: description,
+          title:
+            title === undefined || title === null || title === ''
+              ? undefined
+              : title,
+          timestamp:
+            title === undefined || title === null || title === ''
+              ? undefined
+              : new Date().toISOString()
+        })
+      );
+    });
 }
