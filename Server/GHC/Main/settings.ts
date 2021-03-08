@@ -99,12 +99,9 @@ export const RolePerms: Array<string> = [
   Roles.MEMBER,
   Roles.TESTMOD,
   Roles.GHCTEAM,
-  Roles.MODJR,
   Roles.MOD,
-  Roles.MODPLUS,
   Roles.ADMINJR,
   Roles.ADMIN,
-  Roles.ADMINPLUS,
   Roles.COOWNER,
   Roles.OWNER
 ];
@@ -136,12 +133,9 @@ export const enum Channels {
 export const enum Roles {
   OWNER = '719927074764095522',
   COOWNER = '720663441865441322',
-  ADMINPLUS = '719927364724719627',
   ADMIN = '720644134703988766',
   ADMINJR = '720661583260418107',
-  MODPLUS = '720664606107893842',
   MOD = '720200090026901505',
-  MODJR = '720200144695328822',
   GHCTEAM = '720999882713989122',
   DONATOR = '720669033527115836',
   BOOSTER = '720667973706317854',
@@ -149,7 +143,6 @@ export const enum Roles {
   GHCBOT = '720222119564410931',
   MEMBER = '719943722879418439',
   BLOCKED = '719941978871300206',
-  APPLY = '720251255284563989',
   WARN = '746355385564135435',
   MAINTENANCE = '720334655106187275',
   TESTMOD = '803919993766543380'
@@ -193,7 +186,7 @@ export const pingCommand: Definitions.command = {
   whitelistedUserRoles: [],
   onlyChannels: [],
   cooldown: 0 * 1000,
-  permLvl: Definitions.PermsRolesEnum.EVERYONE
+  permLvl: Definitions.PermsRolesEnum.MEMBER
 };
 export const inviteCommand: Definitions.command = {
   enabled: true,
@@ -219,7 +212,7 @@ export const reportCommand: Definitions.command = {
   whitelistedUserRoles: [],
   onlyChannels: [],
   cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.EVERYONE
+  permLvl: Definitions.PermsRolesEnum.MEMBER
 };
 export const gifCommand: Definitions.command = {
   enabled: false, // TO DO
@@ -274,7 +267,7 @@ export const startCommand: Definitions.command = {
   whitelistedUserRoles: [],
   onlyChannels: [],
   cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.ADMINPLUS
+  permLvl: Definitions.PermsRolesEnum.COOWNER
 };
 export const stopCommand: Definitions.command = {
   enabled: true,
@@ -288,7 +281,7 @@ export const stopCommand: Definitions.command = {
   whitelistedUserRoles: [],
   onlyChannels: [],
   cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.ADMINPLUS
+  permLvl: Definitions.PermsRolesEnum.COOWNER
 };
 export const userStatsCommand: Definitions.command = {
   enabled: true,
@@ -643,7 +636,7 @@ export const GHC_MSGS: Array<Definitions.GHC_MSG> = [
       },
       {
         name: 'Rechte:',
-        value: `[<@&${Roles.MODJR}>]: \n Du kannst in Voicechats:\n__- Leute muten/deafen/moven__\nDu kannst in Textchats:\n__- Einzelne Nachrichten manuell löschen oder mit dem <@&720676666170540172> Befehl *!clear*  Spam Nachrichten löschen.__\n\n[<@&${Roles.MOD}>]:\nDu hast alle Rechte die der <@&${Roles.MODJR}> hat +\n__- <@&${Roles.MEMBER}> die <@&${Roles.BLOCKED}> Rolle geben/entfernen in dem du den *.warn/unwarn [@username] [Grund]* Command benutzt.__\n\n[<@&${Roles.MOD}>]:\nDu warst ein langjähriger <@&${Roles.MOD}>!\n\n[<@&${Roles.ADMINJR}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMIN}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMINPLUS}>]:\nDu bist ein Admin! __Du kannst **alles**__!`
+        value: `[<@&${Roles.MOD}>]: \n Du kannst in Voicechats:\n__- Leute muten/deafen/moven__\nDu kannst in Textchats:\n__- Einzelne Nachrichten manuell löschen oder mit dem <@&720676666170540172> Befehl *!clear*  Spam Nachrichten löschen.__\n\n[<@&${Roles.MOD}>]:\nDu hast alle Rechte die der <@&${Roles.MOD}> hat +\n__- <@&${Roles.MEMBER}> die <@&${Roles.BLOCKED}> Rolle geben/entfernen in dem du den *.warn/unwarn [@username] [Grund]* Command benutzt.__\n\n[<@&${Roles.MOD}>]:\nDu warst ein langjähriger <@&${Roles.MOD}>!\n\n[<@&${Roles.ADMINJR}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMIN}>]:\nDu bist ein Admin! __Du kannst **alles**__!\n\n[<@&${Roles.ADMIN}>]:\nDu bist ein Admin! __Du kannst **alles**__!`
       },
       {
         name: 'Dokumentation...:',
@@ -651,7 +644,7 @@ export const GHC_MSGS: Array<Definitions.GHC_MSG> = [
       },
       {
         name: 'Aufsteigen:',
-        value: `Du bist jetzt also ein <@&${Roles.MODJR}> und willst aufsteigen? Nachdem du **drei Verifizierte arbeiten** gemacht hast und seit mindestens **drei Monaten** Moderator bist, kannst du zum voll wertigen <@&${Roles.GHCTEAM}>-Member werden und die Rolle: <@&${Roles.MOD}> bekommen!`
+        value: `Du bist jetzt also ein <@&${Roles.MOD}> und willst aufsteigen? Nachdem du **drei Verifizierte arbeiten** gemacht hast und seit mindestens **drei Monaten** Moderator bist, kannst du zum voll wertigen <@&${Roles.GHCTEAM}>-Member werden und die Rolle: <@&${Roles.MOD}> bekommen!`
       },
       {
         name: 'Einverständniserklärung',
