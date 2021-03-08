@@ -3,6 +3,7 @@
 import * as Definitions from '../Main/definitions';
 import * as Settings from '../Main/settings';
 import * as Functions from '../Main/functions';
+import * as Database from '../Main/database';
 
 export async function HelpCommand(
   msg: discord.GuildMemberMessage,
@@ -202,9 +203,9 @@ export async function InviteCommand(
     discord.GuildInvite
   > | null = await guild?.getInvites();
 
-  await Functions.delMsg(19000, msg);
+  await Functions.delMsg(msg, 19000);
   // the first invite
-  await Functions.delMsg(19000, await msg?.reply(inviteLinks[0].getUrl()));
+  await Functions.delMsg(await msg?.reply(inviteLinks[0].getUrl()), 19000);
 }
 
 export async function ReportCommand(
@@ -249,20 +250,24 @@ export async function ReportCommand(
       );
 
       await Functions.delMsg(
-        10000,
         await message?.reply(
           new discord.Embed({
             color: Settings.Color.DEFAULT,
             title: 'Report',
             description: `${commandAuthor.toMention()} Dein report wurde an das Team weitergeleitet!`
           })
-        )
+        ),
+        10000
       );
 
-      await Functions.ChangeUserValues(user.user.id, (v) => {
-        v.r++;
-        return v;
-      });
+      await Database.UpdateDataValues(
+        `user-${user.user.id}`,
+        (u) => {
+          u['r']++;
+          return u;
+        },
+        'user'
+      );
 
       await message?.delete();
     });
@@ -287,27 +292,28 @@ export async function StartCommand(
     ?.getChannel()
     .then(async (c) => await c.triggerTypingIndicator());
 
+  // @ts-ignore
   const arrayWithBanStatus: Array<Definitions.GHC_User> =
-    (await Functions.GetAllUserWith((u) => u.s === false)) ?? [];
+    (await Database.GetAllData((u) => u['s'] === false, 'user')) ?? [];
 
   for await (const usersOfServer of (await discord.getGuild()).iterMembers()) {
     if (
       usersOfServer.roles.includes(Settings.Roles.MAINTENANCE) &&
-      !arrayWithBanStatus.some((u) => u.i === usersOfServer.user.id)
+      !arrayWithBanStatus.some((u) => u.id === usersOfServer.user.id)
     ) {
       // user shouldn't be blocked
       try {
         await usersOfServer?.removeRole(Settings.Roles.MAINTENANCE);
         await usersOfServer?.addRole(Settings.Roles.MEMBER);
-      } catch (e) {}
+      } catch (_) {}
     } else if (
       usersOfServer.roles.includes(Settings.Roles.MAINTENANCE) &&
-      arrayWithBanStatus.some((u) => u.i === usersOfServer.user.id)
+      arrayWithBanStatus.some((u) => u.id === usersOfServer.user.id)
     ) {
       try {
         await usersOfServer?.removeRole(Settings.Roles.MAINTENANCE);
         await usersOfServer?.addRole(Settings.Roles.BLOCKED);
-      } catch (e) {}
+      } catch (_) {}
     }
   }
   await Definitions.KV.put('serverStatus', true);
@@ -325,7 +331,7 @@ export async function StartCommand(
   );
 
   await msg?.edit(`Succesfull server start!`);
-  await Functions.delMsg(10000, msg);
+  await Functions.delMsg(msg, 10000);
 }
 
 export async function StopCommand(
@@ -381,7 +387,7 @@ export async function StopCommand(
         })
       )
   );
-  await Functions.delMsg(10000, msg);
+  await Functions.delMsg(msg, 10000);
 }
 
 export async function SayCommand(
@@ -711,7 +717,7 @@ export async function ShowApplicants(
       applicants.push('\n' + usersOfServer.toMention());
     }
   }
-
+  // TODO
   if (applicants.length === 0) {
     await message?.reply(
       new discord.Embed({
@@ -739,8 +745,10 @@ export async function UserStatsCommand(
 ): Promise<void> {
   if (!(await Functions.OnCmd(message, Settings.userStatsCommand))) return;
 
-  const userData: Definitions.GHC_User | undefined = await Functions.GetUser(
-    user.user.id
+  // @ts-ignore
+  const userData: Definitions.GHC_User | undefined = await Database.GetData(
+    `user-${user.user.id}`,
+    'user'
   );
 
   if (userData === undefined) return;
@@ -896,10 +904,14 @@ export async function PardonCommand(
     await user?.addRole(Settings.Roles.MEMBER);
     await user?.removeRole(Settings.Roles.BLOCKED);
 
-    await Functions.ChangeUserValues(user.user.id, (u) => {
-      u.s = true;
-      return u;
-    });
+    await Database.UpdateDataValues(
+      `user-${user.user.id}`,
+      (u) => {
+        u.s = true;
+        return u;
+      },
+      'user'
+    );
 
     await channelBot?.sendMessage(
       new discord.Embed({
@@ -1039,11 +1051,15 @@ export async function WarnCommand(
       await user.addRole(Settings.Roles.BLOCKED);
       await user.removeRole(Settings.Roles.MEMBER);
 
-      await Functions.ChangeUserValues(user.user.id, (u) => {
-        u.s = false; // user is blocked
-        u.g++; // user was blocked once more
-        return u;
-      });
+      await Database.UpdateDataValues(
+        `user-${user.user.id}`,
+        (u) => {
+          u.s = false; // user is blocked
+          u.g++; // user was blocked once more
+          return u;
+        },
+        'user'
+      );
 
       let id: string = '';
       for (let i: number = 0; i < Settings.banIdLength; i++) {
