@@ -98,13 +98,13 @@
 
 // structure of the data // EDIT
 export interface DataStructure extends pylon.JsonObject {
-  i: string | number; // the index / id of your data. Every object has to have this or else you can't use it here
+  index: string | number; // the index / id of your data. Every object has to have this or else you can't use it here
   // you can do here what ever you want as long it can be saved in the JSON format.
   // you can ignore this too and just pass objects
 }
 
 // index name of the objects/interface. has to be the same as the index name of *DataStructure*
-const indexName: string = 'i'; // EDIT
+const indexName: string = 'index'; // EDIT
 
 // this namespace will be used if not specified else.
 const defaultNamespace: string = 'database'; // EDIT
