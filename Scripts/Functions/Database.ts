@@ -1,4 +1,4 @@
-// Florian Crafter - 02.2021 - Version 1.6b
+// Florian Crafter - 02.2021 - Version 1.7
 // Question about or need help for the code? Read the docs and look at the examples and at last DM me on Discord (Clash Crafter#7370).
 
 // READ AT LEAST THE CAPSLOCK LINES (like "HOW TO USE IT") & EDIT THE LINES WITH // EDIT AT THE END
@@ -30,8 +30,8 @@
  *   and if your file is in a folde but the database not do '../database')
  * - Now you can use your 10 Functions and the KV directly with the keyword Database
  *   (for example: await Database.GetAllData(); )
- * PS: I would recommend you to create a new KV Namespace (instead of "database") for things you want to save without the functions
- * to prevent errors and I wouldn't recomment you to use your old KV (If you had already one) for these functions. Again, to prevent errors.
+ * PS: I would recommend NOT to use KV Namespaces which you use with the functions to prevent errors.
+ * PPS: write undefined if you dont't need a special namespace or let it empty
  *
  * A quick overview of the functions:
  *
@@ -278,8 +278,8 @@ export async function GetData(
 }
 
 export async function GetAllData(
-  filter?: (data: DataStructure) => boolean,
-  namespace?: string
+  namespace?: string,
+  filter?: (data: DataStructure) => boolean
 ): Promise<DataStructure[] | undefined> {
   // get the KV
   let KV: pylon.KVNamespace;
@@ -301,7 +301,7 @@ export async function GetAllData(
     for (let i = 0; i < data.length; ++i)
       try {
         if (filter(data[i])) filteredData.push(data[i]);
-      } catch (e) {}
+      } catch (_) {}
 
     data = filteredData;
   }
@@ -344,8 +344,8 @@ export async function UpdateDataValues(
 export async function DuplicateData(
   oldIndex: string | number,
   newIndex: string | number,
-  dataEdit?: (data: DataStructure) => DataStructure,
-  namespace?: string
+  namespace?: string,
+  dataEdit?: (data: DataStructure) => DataStructure
 ): Promise<boolean> {
   // get the KV
   let KV: pylon.KVNamespace;
@@ -414,8 +414,8 @@ export async function ChangeIndex(
 }
 
 export async function AllIndexes(
-  filter?: (data: DataStructure) => boolean,
-  namespace?: string
+  namespace?: string,
+  filter?: (data: DataStructure) => boolean
 ): Promise<string[]> {
   // get the KV
   let KV: pylon.KVNamespace;
@@ -460,7 +460,9 @@ async function DatabaseKeyOrder(namespace: string): Promise<boolean> {
     KV = new pylon.KVNamespace(namespace);
   else KV = Default_KV;
 
-  let size: number = await GetDatabaseKeySize(KV.namespace);
+  let size: number =
+    (await new pylon.KVNamespace(namespace).get<number>(`databaseKeySize`)) ??
+    -1;
 
   for (let i: number = 0; i <= size; ++i) {
     let data: DataStructure[] | undefined = await KV.get<DataStructure[]>(
@@ -478,16 +480,15 @@ async function DatabaseKeyOrder(namespace: string): Promise<boolean> {
       }
 
       await KV.delete(`database_${size}`); // deletes empty key which is now the last one
-      --size;
-      // update size
-      await KV.put(`databaseKeySize`, size);
-      /* In theory one more key if database is empty, but doesn't work right now. TODO 
+      // In theory one more key if database is empty, but doesn't work right now. TODO
       if (size === 0 || size === -1)
         try {
           await KV.delete(`databaseKeySize`);
-        } catch (e) {}
-      else await KV.put(`databaseKeySize`, size);
-      */
+        } catch (_) {
+          await KV.put(`databaseKeySize`, --size);
+        }
+      else await KV.put(`databaseKeySize`, --size); // update size
+
       await DatabaseKeyOrder(KV.namespace); // restart the whole process to check for a second empty key
 
       return true;
