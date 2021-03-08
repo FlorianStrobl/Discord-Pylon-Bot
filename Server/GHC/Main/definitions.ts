@@ -41,41 +41,37 @@ export interface command {
     | PermsRolesEnum.MEMBER
     | PermsRolesEnum.TESTMOD
     | PermsRolesEnum.GHCMEMBER
-    | PermsRolesEnum.MODJR
     | PermsRolesEnum.MOD
-    | PermsRolesEnum.MODPLUS
     | PermsRolesEnum.ADMINJR
     | PermsRolesEnum.ADMIN
-    | PermsRolesEnum.ADMINPLUS
     | PermsRolesEnum.COOWNER
     | PermsRolesEnum.OWNER; // Roles abouve (inclusiv) can use the cmd. Also determins what is showen in .help
 }
 
 // all the different role permissions
 export const enum PermsRolesEnum {
-  EVERYONE = 0,
-  MEMBER = 1,
-  TESTMOD = 2,
-  GHCMEMBER = 3,
-  MODJR = 4,
-  MOD = 5,
-  MODPLUS = 6,
-  ADMINJR = 7,
-  ADMIN = 8,
-  ADMINPLUS = 9,
-  COOWNER = 10,
-  OWNER = 11
+  EVERYONE,
+  MEMBER,
+  TESTMOD,
+  GHCMEMBER,
+  MOD,
+  ADMINJR,
+  ADMIN,
+  COOWNER,
+  OWNER
 }
 
 // infos about an user to store in KV
 export interface GHC_User extends pylon.JsonObject {
-  i: string; // the id of the user
+  id: string; // the id of the user
   l: string; // the setted language of the user
   s: boolean; // current warn state of the user (false = blocked)
   r: number; // number of times reported
   g: number; // number of times blocked
   c: number; // cooldown
   m: number; // written message number
+  ac: number; // apply cooldown
+  as: boolean; // apply state
 }
 
 // Blacklisted words
