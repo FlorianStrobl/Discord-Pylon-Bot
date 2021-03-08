@@ -75,7 +75,7 @@ export async function Rules(
   if (!Settings.enabled || reaction.channelId !== Settings.Channels.RULES)
     return;
 
-  const user: discord.GuildMember | undefined = reaction.member;
+  const member: discord.GuildMember | undefined = reaction.member;
   const msg: discord.Message | null | undefined = await (
     await discord.getGuildTextChannel(Settings.Channels.RULES)
   )?.getMessage(reaction.messageId);
@@ -85,61 +85,65 @@ export async function Rules(
   if (
     reaction.emoji.name !== Settings.Emojis.AGREE ||
     reaction.member?.roles.length !== 0 ||
-    user === undefined
+    member === undefined
   )
     return;
 
-  // TODO complete new user so he isnt in the db
-
   // @ts-ignore gets the data of the user
   const userdata: Definitions.GHC_User | undefined = await Database.GetData(
-    `data-${msg?.member?.user.id ?? '-'}`,
+    `user-${reaction.userId}`,
     'user'
   );
 
-  if (!userdata?.c) {
+  if (userdata === undefined)
+    await Database.SaveData(
+      {
+        i: `user-${reaction.userId}`,
+        l: 'DE',
+        s: true,
+        r: 0,
+        g: 0,
+        c: 0,
+        m: 0,
+        ac: 0
+      },
+      'user'
+    );
+
+  if ((userdata?.s ?? true) === true) {
     //  the user accepted the rules so the user gets the member or maintenance role and a welcome msg is throwen in the #welcome channel.
     if (
       (await Definitions.KV.get<boolean>(`serverStatus`)) === true ||
       (await Definitions.KV.get<boolean>(`serverStatus`)) === undefined
-    ) {
+    )
       // no maintenance work
-      await user.addRole(Settings.Roles.MEMBER);
-    } else {
-      // maintenance work
-      await user.addRole(Settings.Roles.MAINTENANCE);
-    }
+      await member.addRole(Settings.Roles.MEMBER);
+    else await member.addRole(Settings.Roles.MAINTENANCE); // maintenance work
 
-    await discord.getGuildTextChannel(Settings.Channels.WELCOME).then(
-      async (c) =>
-        await c?.sendMessage(
-          new discord.Embed({
-            color: Math.random() * 0xffffff,
-            author: {
-              iconUrl: user.user.getAvatarUrl(),
-              name: user.user.username
-            },
-            timestamp: new Date().toISOString(),
-            description: Settings.welcomeMsgs[
-              Math.floor(
-                Math.random() * Math.floor(Settings.welcomeMsgs.length)
-              )
-            ].replace('@user', user.toMention())
-          })
-        )
+    await discord.getGuildTextChannel(Settings.Channels.WELCOME).then((c) =>
+      c?.sendMessage(
+        new discord.Embed({
+          color: Math.random() * 0xffffff,
+          author: {
+            iconUrl: member.user.getAvatarUrl(),
+            name: member.user.username
+          },
+          timestamp: new Date().toISOString(),
+          description: Settings.welcomeMsgs[
+            Math.floor(Math.random() * Math.floor(Settings.welcomeMsgs.length))
+          ].replace('@user', member.toMention())
+        })
+      )
     );
   } else {
     // user was banned befor rejoining the guild, so he gets the blocked role or maintenance
     if (
       (await Definitions.KV.get<boolean>(`serverStatus`)) === true ||
       (await Definitions.KV.get<boolean>(`serverStatus`)) === undefined
-    ) {
+    )
       // no maintenance work
-      await user?.addRole(Settings.Roles.BLOCKED);
-    } else {
-      // maintenance work
-      await user?.addRole(Settings.Roles.MAINTENANCE);
-    }
+      await member?.addRole(Settings.Roles.BLOCKED);
+    else await member?.addRole(Settings.Roles.MAINTENANCE); // maintenance work
   }
 }
 
@@ -153,37 +157,56 @@ export async function NewApply(
   )
     return;
 
+  const message: discord.Message | null | undefined = await (
+    await discord.getGuildTextChannel(reaction.channelId)
+  )?.getMessage(reaction.messageId);
+
   // ratelimits: return if user did react in the last X milliseconds and delete his reaction
-  if ((await Definitions.KV.get(`applier.${reaction.userId}`)) === undefined) {
-    Definitions.KV.put(`applier.${reaction.userId}`, 0, {
-      ttl: Settings.applyReactionDelay * 1000
+  if (
+    (await Definitions.KV.get<number>(`applier.${reaction.userId}`)) !==
+    undefined
+  ) {
+    // in last two seconds reacted so default return with reaction deletion
+    Definitions.KV.put(`applier.${reaction.userId}`, null, {
+      ttl: 5000
     });
-  } else {
-    Definitions.KV.put(`applier.${reaction.userId}`, 1, {
-      ttl: Settings.applyReactionDelay * 1000
-    });
-    (
-      await (await discord.getGuildTextChannel(reaction.channelId))?.getMessage(
-        reaction.messageId
-      )
-    )?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
+    await message?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
     return;
+  } else {
+    // not in two seconds
+    Definitions.KV.put(`applier.${reaction.userId}`, null, {
+      ttl: 5000
+    });
+
+    if (
+      // @ts-ignore
+      ((await Database.GetData(`user-${reaction.userId}`, 'user'))['ac'] ?? 0) >
+      Date.now()
+    ) {
+      // but in last 24h
+      await message?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
+      return;
+    }
   }
 
-  // return if the user has a role, which can't apply or is blacklisted
   if (
     Settings.cantApply.some((r) => reaction.member?.roles.includes(r)) ||
     Settings.cantApply.includes(reaction.userId)
   ) {
-    await (
-      await (await discord.getGuildTextChannel(reaction.channelId))?.getMessage(
-        reaction.messageId
-      )
-    )?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
+    // user and or role is blacklisted from appling
+    await message?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
     return;
   }
 
-  await reaction.member?.addRole(Settings.Roles.APPLY);
+  await Database.UpdateDataValues(
+    `user-${reaction.userId}`,
+    (u) => {
+      u['ac'] = Settings.applyReactionDelay * 1000 + Date.now();
+      u['as'] = true;
+      return u;
+    },
+    'user'
+  );
 
   await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
     c?.sendMessage(
@@ -209,10 +232,20 @@ export async function AbortApply(
   )
     return;
 
-  await reaction.member?.removeRole(Settings.Roles.APPLY);
-
-  if (((await Definitions.KV.get(`applier.${reaction.userId}`)) ?? 0) > 0)
+  if (
+    (await Definitions.KV.get<number>(`applier.${reaction.userId}`)) !==
+    undefined
+  )
     return;
+
+  await Database.UpdateDataValues(
+    `user-${reaction.userId}`,
+    (u) => {
+      u['as'] = false;
+      return u;
+    },
+    'user'
+  );
 
   await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
     c?.sendMessage(
@@ -253,14 +286,14 @@ export async function Feedback(msg: discord.Message): Promise<void> {
   );
 
   await Functions.delMsg(
-    10000,
     await msg?.reply(
       new discord.Embed({
         color: Settings.Color.DEFAULT,
         title: 'Feedback',
         description: `${msg.member?.toMention()} Deine Nachricht wurde an das Team weitergeleitet.`
       })
-    )
+    ),
+    10000
   );
 
   await msg?.delete();
@@ -287,7 +320,6 @@ export async function BlacklistedWords(msg: discord.Message) {
     return;
 
   await Functions.delMsg(
-    19000,
     await msg?.reply(
       new discord.Embed({
         color: Settings.Color.RED,
@@ -295,7 +327,8 @@ export async function BlacklistedWords(msg: discord.Message) {
         description: `Nani!? Hüte deine Zunge, ${msg.member?.toMention()}!`,
         timestamp: new Date().toISOString()
       })
-    )
+    ),
+    19000
   );
 
   await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
