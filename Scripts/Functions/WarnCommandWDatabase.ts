@@ -1,6 +1,6 @@
 // Florian Crafter - 03.2021
 // IMPORTANT: I recommend to create a new file and give it a name like "WarnCommand.ts"
-// You have to go now to the "main.ts" and write at the top: import './WarnCommands';
+// You have to go now to the "main.ts" and write at the top: import './WarnCommand';
 // Then do the second important step (the one below) and you can start with your commands!
 // Commands: !warn @user reason, !get-warns @user, !delete-warn @user
 
