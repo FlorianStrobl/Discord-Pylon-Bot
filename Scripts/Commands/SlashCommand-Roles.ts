@@ -17,7 +17,7 @@ const channels = ['channel id 1', 'channel id 2'];
 discord.interactions.commands.register(
   {
     name: 'role',
-    description: 'Give yourself a role.',
+    description: 'Give/Remove yourself a role.',
     showSourceMessage: true,
     options: (args) => ({
       role: args.string({
@@ -33,7 +33,17 @@ discord.interactions.commands.register(
       await msg.acknowledge();
 
     const index = Role.findIndex((t) => t[0] == role);
-    if (index !== -1) {
+
+    if (index !== -1 && msg.member.roles.includes(Role[index][1])) {
+      try {
+        await msg.member.removeRole(Role[index][1]);
+        await msg.respond(
+          `You already had the <@&${Role[index][1]}> role, so I removed it.`
+        );
+      } catch (_) {
+        await msg.respond(`Error with the ${role} role.`);
+      }
+    } else if (index !== -1) {
       try {
         await msg.member.addRole(Role[index][1]);
         await msg.respond(`You have now the <@&${Role[index][1]}> role!`);
