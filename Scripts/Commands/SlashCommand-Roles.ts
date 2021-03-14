@@ -29,8 +29,11 @@ discord.interactions.commands.register(
     })
   },
   async (msg, { role }) => {
-    if (!channels.includes(msg.channelId) && channels.length !== 0)
-      await msg.acknowledge();
+    if (!channels.includes(msg.channelId) && channels.length !== 0) {
+      await msg.respond(`You can't use this command in this channel!`);
+      await msg.acknowledge(true);
+      return;
+    }
 
     const index = Role.findIndex((t) => t[0] == role);
 
@@ -52,6 +55,6 @@ discord.interactions.commands.register(
       }
     } else await msg.respond(`Error with the ${role} role.`);
 
-    await msg.acknowledge();
+    await msg.acknowledge(true);
   }
 );
