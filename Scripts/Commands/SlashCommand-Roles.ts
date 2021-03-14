@@ -1,9 +1,6 @@
 // Give user roles they want with custom name and with the role Ids
 // edit all lines with the comment EDIT to make the code work
 
-// EDIT Role names (has to be same as in Role)
-const choices: string[] = ['role 1', 'role 2', 'role 3'];
-
 // EDIT Role name and its ID
 const Role: [string, string][] = [
   ['role 1', 'id'],
@@ -12,7 +9,13 @@ const Role: [string, string][] = [
 ];
 
 // EDIT channels in which the command can be executed
-const channels = ['channel id 1', 'channel id 2'];
+const channels = ['channel id 1', 'channel id 2']; // let it completly empty if it should work for every channel
+
+function firstRow(a: [string, string][]): string[] {
+  let output: string[] = [];
+  a.forEach((e) => output.push(e[0]));
+  return output;
+}
 
 discord.interactions.commands.register(
   {
@@ -24,7 +27,7 @@ discord.interactions.commands.register(
         name: 'role',
         description: 'The role you want.',
         required: true,
-        choices: choices
+        choices: firstRow(Role)
       })
     })
   },
