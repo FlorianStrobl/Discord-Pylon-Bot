@@ -11,12 +11,6 @@ const Role: [string, string][] = [
 // EDIT channels in which the command can be executed
 const channels = ['channel id 1', 'channel id 2']; // let it completly empty if it should work for every channel
 
-function firstRow(a: [string, string][]): string[] {
-  let output: string[] = [];
-  a.forEach((e) => output.push(e[0]));
-  return output;
-}
-
 discord.interactions.commands.register(
   {
     name: 'role',
@@ -27,7 +21,7 @@ discord.interactions.commands.register(
         name: 'role',
         description: 'The role you want.',
         required: true,
-        choices: firstRow(Role)
+        choices: Role.map((e) => e[0])
       })
     })
   },
