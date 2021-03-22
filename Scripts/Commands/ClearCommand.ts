@@ -2,15 +2,19 @@
 
 const KV = new pylon.KVNamespace('clear');
 
-discord.on(discord.Event.MESSAGE_CREATE, async (message) => {
-  let messages: string[] =
-    (await KV.get(`messages-${message.channelId}`)) ?? [];
-  messages.push(message.id);
+discord.on(
+  discord.Event.MESSAGE_CREATE,
+  async (message) => await ClearMessages(message.id, message.channelId)
+);
+
+async function ClearMessages(messageId: string, channelId: string) {
+  let messages: string[] = (await KV.get(`messages-${channelId}`)) ?? [];
+  messages.push(messageId);
 
   while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
 
-  await KV.put(`messages-${message.channelId}`, messages);
-});
+  await KV.put(`messages-${messageId}`, messages);
+}
 
 discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
   let messages: string[] =
