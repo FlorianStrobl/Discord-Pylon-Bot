@@ -13,7 +13,7 @@ async function ClearMessages(messageId: string, channelId: string) {
 
   while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
 
-  await KV.put(`messages-${messageId}`, messages);
+  await KV.put(`messages-${channelId}`, messages);
 }
 
 discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
