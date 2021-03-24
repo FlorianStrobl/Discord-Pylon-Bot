@@ -1,5 +1,7 @@
 // Florian Crafter - Clash Crafter#7370 March 2021
 
+// Save the last 350 messages from a channel and delete them with !clear n. The code DOESN'T save the messages from Pylon itself so these can't be deleted :(
+
 const KV = new pylon.KVNamespace('clear');
 
 discord.on(
