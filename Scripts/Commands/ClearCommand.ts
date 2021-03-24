@@ -30,7 +30,7 @@ discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
   else await KV.delete(`messages-${message.channelId}`);
 });
 
-Definitions.Commands.on(
+Commands.on(
   {
     name: 'clear'
   },
