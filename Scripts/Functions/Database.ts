@@ -27,7 +27,7 @@
  * - search for "EDIT" with CTRL+F and edit there the lines to your values
  * - At the top of all files were you need the database write: "import * as Database from './database';".
  *   (The last string here is the folder directory. If your database is in a folder, write './FOLDER/database'
- *   and if your file is in a folde but the database not do '../database')
+ *   and if your file is in a folder but the database not do '../database')
  * - Now you can use your 10 Functions and the KV directly with the keyword Database
  *   (for example: await Database.GetAllData(); )
  * PS: I would recommend NOT to use KV Namespaces which you use with the functions to prevent errors.
