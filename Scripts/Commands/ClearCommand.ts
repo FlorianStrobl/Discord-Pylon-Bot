@@ -42,7 +42,7 @@ Commands.on(
       );
     else
       responseMsg = await message?.reply(
-        `Deleted the last ${func} messages from this channel.`
+        `Deleted the last ${func} message(s) from this channel.`
       );
 
     setTimeout(() => responseMsg.delete(), 10000);
