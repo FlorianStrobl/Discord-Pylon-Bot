@@ -40,35 +40,50 @@ Commands.on(
     n: args.number()
   }),
   async (message, { n }) => {
-    let messages: string[] | undefined = await KV.get(
-      `messages-${message.channelId}`
-    );
-    if (messages === undefined) return;
-
-    const channel = await discord.getGuildTextChannel(message.channelId);
-
-    let toDeleteMessages: string[] = [];
-    for (
-      let i = messages.length - (n <= messages.length ? n : messages.length);
-      i < messages.length;
-      ++i
-    )
-      toDeleteMessages.push(messages[i]);
-
-    if (toDeleteMessages.length === 1)
-      await (await channel?.getMessage(toDeleteMessages[0]))?.delete();
-    else if (toDeleteMessages.length !== 0)
-      await channel?.bulkDeleteMessages(toDeleteMessages);
-
-    await KV.put(
-      `messages-${message.channelId}`,
-      messages.filter((mId) => !toDeleteMessages.includes(mId))
-    );
+    const func: number | undefined = await deleteMessages(message.channelId, n);
 
     await message.delete();
-    const responseMsg = await message?.reply(
-      `Deleted the last ${toDeleteMessages.length} messages from this channel.`
-    );
+
+    let responseMsg: discord.Message;
+    if (func === undefined)
+      responseMsg = await message?.reply(
+        `Deleted no messages from this channel.`
+      );
+    else
+      responseMsg = await message?.reply(
+        `Deleted the last ${func} messages from this channel.`
+      );
+
     setTimeout(() => responseMsg.delete(), 10000);
   }
 );
+
+async function deleteMessages(
+  channelId: string,
+  nr: number
+): Promise<number | undefined> {
+  let messages: string[] | undefined = await KV.get(`messages-${channelId}`);
+  if (messages === undefined) return undefined;
+
+  const channel = await discord.getGuildTextChannel(channelId);
+
+  let toDeleteMessages: string[] = [];
+  for (
+    let i = messages.length - (nr <= messages.length ? nr : messages.length);
+    i < messages.length;
+    ++i
+  )
+    toDeleteMessages.push(messages[i]);
+
+  if (toDeleteMessages.length === 1)
+    await (await channel?.getMessage(toDeleteMessages[0]))?.delete();
+  else if (toDeleteMessages.length !== 0)
+    await channel?.bulkDeleteMessages(toDeleteMessages);
+
+  await KV.put(
+    `messages-${channelId}`,
+    messages.filter((mId) => !toDeleteMessages.includes(mId))
+  );
+
+  return toDeleteMessages.length;
+}
