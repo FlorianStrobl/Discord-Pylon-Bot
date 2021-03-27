@@ -9,15 +9,6 @@ discord.on(
   async (message) => await SaveMessageIds(message.id, message.channelId)
 );
 
-async function SaveMessageIds(messageId: string, channelId: string) {
-  let messages: string[] = (await KV.get(`messages-${channelId}`)) ?? [];
-  messages.push(messageId);
-
-  while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
-
-  await KV.put(`messages-${channelId}`, messages);
-}
-
 discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
   let messages: string[] =
     (await KV.get(`messages-${message.channelId}`)) ?? [];
@@ -86,4 +77,13 @@ async function deleteMessages(
   );
 
   return toDeleteMessages.length;
+}
+
+async function SaveMessageIds(messageId: string, channelId: string) {
+  let messages: string[] = (await KV.get(`messages-${channelId}`)) ?? [];
+  messages.push(messageId);
+
+  while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
+
+  await KV.put(`messages-${channelId}`, messages);
 }
