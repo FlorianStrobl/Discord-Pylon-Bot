@@ -31,9 +31,9 @@ Commands.on(
     n: args.number()
   }),
   async (message, { n }) => {
-    const func: number | undefined = await deleteMessages(message.channelId, n);
-
     await message.delete();
+    
+    const func: number | undefined = await deleteMessages(message.channelId, n);
 
     let responseMsg: discord.Message;
     if (func === undefined)
