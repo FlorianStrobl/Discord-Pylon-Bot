@@ -45,7 +45,7 @@ Commands.on(
         `Deleted the last ${func} message(s) from this channel.`
       );
 
-    setTimeout(() => responseMsg.delete(), 10000);
+    setTimeout(() => responseMsg?.delete(), 10000);
   }
 );
 
