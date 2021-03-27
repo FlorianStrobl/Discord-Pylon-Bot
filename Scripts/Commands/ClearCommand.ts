@@ -1,4 +1,4 @@
-// Florian Crafter - Clash Crafter#7370 March 2021
+// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.1
 
 // Save the last 350 messages (it's about 350) from a channel and delete them with !clear n. The code DOESN'T save the messages from Pylon itself so these can't be deleted :(
 
