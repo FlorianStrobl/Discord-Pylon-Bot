@@ -1,5 +1,3 @@
-// Settings
-
 import * as Definitions from './definitions';
 
 export const enabled: boolean = true; // enable/disable EVERYTHING
@@ -46,9 +44,12 @@ export const botMessages: Definitions.botMsg = {
     cmdCooldownMsg: `You are still in cooldown. Wait x seconds!`, // msg if the given user is still in cmd cooldown
     cmdNotChannel: `Command(s) can't be executed in this channel.`, // msg if the given cmd is in a blocked channel
     cmdNotPassword: `Command got the wrong password.`, // wrong password
-    cmdNoPerms: `@user You don't have the permission to use this command!` // msg if the user don't have the permissions to use a cmd
+    cmdNoPerms: `@user You don't have the permission to use this command!`, // msg if the user don't have the permissions to use a cmd
+    error: 'An error occured.'
   },
-  de: {},
+  de: {
+    cmdOnlyCmdChannel: `Bitte schreibe diesen Command in den <#${Channels.CMD}> channel.`
+  },
   fr: {}
 };
 
@@ -151,22 +152,10 @@ export const enum Roles {
 // #region commands
 export const helpCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'help',
   altNames: [],
-  description: `Get help with this bot.\nArguments: ***<PermissionLvl?>***.`,
-  inHelp: false,
-  onlyBotChatMsg: false,
-  blacklistUserRolesChannel: [],
-  whitelistedUserRoles: [],
-  onlyChannels: [],
-  cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.EVERYONE
-};
-export const serverStatsCommand: Definitions.command = {
-  enabled: true,
-  name: 'serverStats',
-  altNames: ['server'],
-  description: `Shows information about the server.`,
+  description: 'Get help with this bot.\nArguments: `<PermissionLvl?>`',
   inHelp: true,
   onlyBotChatMsg: false,
   blacklistUserRolesChannel: [],
@@ -175,8 +164,54 @@ export const serverStatsCommand: Definitions.command = {
   cooldown: 0,
   permLvl: Definitions.PermsRolesEnum.EVERYONE
 };
+export const clearCommand: Definitions.command = {
+  enabled: true,
+  password: false,
+  name: 'clear',
+  altNames: ['purge'],
+  description: 'Delete last N messages from a channel.\nArguments: `<count>`',
+  inHelp: true,
+  onlyBotChatMsg: false,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: [],
+  onlyChannels: [],
+  cooldown: 0,
+  permLvl: Definitions.PermsRolesEnum.GHCMEMBER
+};
+export const roleCommand: any = {
+  enabled: true,
+  password: false,
+  name: 'role',
+  altNames: [],
+  description: 'Give/remove yourself a role.\nArguments: `<role name>`',
+  inHelp: true,
+  onlyBotChatMsg: false,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: [],
+  onlyChannels: [],
+  cooldown: 0,
+  permLvl: Definitions.PermsRolesEnum.MEMBER,
+  roles: [['Purger', '816685018012188703']],
+  channels: [],
+  ephemeral: true
+};
+export const serverStatsCommand: Definitions.command = {
+  enabled: true,
+  password: false,
+  name: 'serverStats',
+  altNames: ['server', 'serverInfos', 'serverInfo'],
+  description: `Shows information about the server.`,
+  inHelp: true,
+  onlyBotChatMsg: false,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: [],
+  onlyChannels: [],
+  cooldown: 10,
+  permLvl: Definitions.PermsRolesEnum.EVERYONE
+};
 export const pingCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'ping',
   altNames: ['connection'],
   description: `See the current ping of the GHC Bot. (If he seems to lag: maybe it's Discord and not him...)`,
@@ -185,11 +220,12 @@ export const pingCommand: Definitions.command = {
   blacklistUserRolesChannel: [],
   whitelistedUserRoles: [],
   onlyChannels: [],
-  cooldown: 0 * 1000,
+  cooldown: 10,
   permLvl: Definitions.PermsRolesEnum.MEMBER
 };
 export const inviteCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'invite',
   altNames: [],
   description: `Get a invite link from this server.`,
@@ -198,24 +234,26 @@ export const inviteCommand: Definitions.command = {
   blacklistUserRolesChannel: [],
   whitelistedUserRoles: [],
   onlyChannels: [],
-  cooldown: 0,
+  cooldown: 600,
   permLvl: Definitions.PermsRolesEnum.MEMBER
 };
 export const reportCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'report',
   altNames: [],
-  description: `Report a user.\nArguments: ***<@user> <reason>***.`,
+  description: 'Report a user.\nArguments: `<user> <reason>`.',
   inHelp: true,
   onlyBotChatMsg: false,
   blacklistUserRolesChannel: [],
   whitelistedUserRoles: [],
   onlyChannels: [],
-  cooldown: 0,
+  cooldown: 1,
   permLvl: Definitions.PermsRolesEnum.MEMBER
 };
 export const gifCommand: Definitions.command = {
   enabled: false, // TO DO
+  password: false,
   name: 'gif',
   altNames: [],
   description: `Shows you a random gif.`,
@@ -224,29 +262,17 @@ export const gifCommand: Definitions.command = {
   blacklistUserRolesChannel: [],
   whitelistedUserRoles: [],
   onlyChannels: [],
-  cooldown: 0,
+  cooldown: 5,
   permLvl: Definitions.PermsRolesEnum.MEMBER
-};
-export const resetKVCommand: Definitions.command = {
-  enabled: true,
-  password: true,
-  name: 'resetkv',
-  altNames: ['resetdata', 'deletekv', 'deletedata'],
-  description: `Delete all saved data.\nArguments: ***<password>***.`,
-  inHelp: true,
-  onlyBotChatMsg: true,
-  blacklistUserRolesChannel: [],
-  whitelistedUserRoles: [],
-  onlyChannels: [],
-  cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.COOWNER
 };
 export const spawnMSGCommand: Definitions.command = {
   enabled: true,
   password: true,
   name: 'spawnmsg',
   altNames: ['spawn'],
-  description: `Spawn the default embeds like in <#${Channels.RULES}>.\nArguments: ***<password> <number>***.`,
+  description:
+    `Spawn the default embeds like in <#${Channels.RULES}>.` +
+    '\nArguments: `<password> <number>`.',
   inHelp: true,
   onlyBotChatMsg: false,
   blacklistUserRolesChannel: [],
@@ -255,39 +281,12 @@ export const spawnMSGCommand: Definitions.command = {
   cooldown: 0,
   permLvl: Definitions.PermsRolesEnum.COOWNER
 };
-export const startCommand: Definitions.command = {
-  enabled: true,
-  password: true,
-  name: 'start',
-  altNames: ['restart'],
-  description: `Start the server after a server stop.\nArguments: ***<password>***.`,
-  inHelp: true,
-  onlyBotChatMsg: true,
-  blacklistUserRolesChannel: [],
-  whitelistedUserRoles: [],
-  onlyChannels: [],
-  cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.COOWNER
-};
-export const stopCommand: Definitions.command = {
-  enabled: true,
-  password: true,
-  name: 'stop',
-  altNames: ['abort'],
-  description: `Shutdown the server by giving everyone only the <@&${Roles.MAINTENANCE}> role.\nArguments: ***<password>***.`,
-  inHelp: true,
-  onlyBotChatMsg: true,
-  blacklistUserRolesChannel: [],
-  whitelistedUserRoles: [],
-  onlyChannels: [],
-  cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.COOWNER
-};
 export const userStatsCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'userstats',
   altNames: [],
-  description: `Shows stats about an user.\nArguments: ***<@user>***.`,
+  description: 'Shows stats about an user.\nArguments: `<user>`.',
   inHelp: true,
   onlyBotChatMsg: false,
   blacklistUserRolesChannel: [],
@@ -298,9 +297,10 @@ export const userStatsCommand: Definitions.command = {
 };
 export const showCaseCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'showcase',
   altNames: [],
-  description: `Show a previus ban.\nArguments: ***<ID>***.`,
+  description: 'Show a previus ban.\nArguments: `<ID>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -314,7 +314,9 @@ export const surveyCommand: Definitions.command = {
   password: true,
   name: 'survey',
   altNames: [],
-  description: `Start a survey in <#${Channels.SURVEYS}>.\nArguments: ***<password> <text>***.`,
+  description:
+    `Start a survey in <#${Channels.SURVEYS}>.` +
+    '\nArguments: `<password> <text>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -325,9 +327,11 @@ export const surveyCommand: Definitions.command = {
 };
 export const closeSurveyCommand: Definitions.command = {
   enabled: true,
+  password: true,
   name: 'closesurvey',
   altNames: [],
-  description: `Close a survey in <#${Channels.SURVEYS}>.\nArguments: ***<number>***.`,
+  description:
+    `Close a survey in <#${Channels.SURVEYS}>.` + '\nArguments: `<number>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -341,7 +345,9 @@ export const sayCommand: Definitions.command = {
   password: true,
   name: 'say',
   altNames: [],
-  description: `Make an announcement in <#${Channels.NEWS}>.\nArguments: ***<password> <text>***.`,
+  description:
+    `Make an announcement in <#${Channels.NEWS}>.` +
+    '\nArguments: `<password> <text>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -355,7 +361,8 @@ export const applyCommand: Definitions.command = {
   password: true,
   name: 'apply',
   altNames: [],
-  description: `Open/close the application phase.\nArguments: ***<password> <true/false; 0/1>***.`,
+  description:
+    'Open/close the application phase.\nArguments: `<password> <true/false; 0/1>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -366,6 +373,7 @@ export const applyCommand: Definitions.command = {
 };
 export const showApplicantsCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'showapplicants',
   altNames: ['applicants'],
   description: `Show all current applicants.`,
@@ -379,9 +387,10 @@ export const showApplicantsCommand: Definitions.command = {
 };
 export const pardonCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'pardon',
   altNames: ['forgive', 'unwarn'],
-  description: `Pardon a user.\nArguments: ***<@user>***.`,
+  description: 'Pardon a user.\nArguments: `<user>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -392,9 +401,11 @@ export const pardonCommand: Definitions.command = {
 };
 export const punishCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'punish',
   altNames: [],
-  description: `Punish a member by baning/kicking/warning him.\nArguments: ***<@user> <reason>***.`,
+  description:
+    'Punish a member by baning/kicking/warning him.\nArguments: `<user> <reason>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -405,9 +416,10 @@ export const punishCommand: Definitions.command = {
 };
 export const warnCommand: Definitions.command = {
   enabled: true,
+  password: false,
   name: 'warn',
   altNames: [],
-  description: `Warn a user.\nArguments: ***<@username> <reason>***.`,
+  description: 'Warn a user.\nArguments: `<user> <reason>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -421,7 +433,7 @@ export const banCommand: Definitions.command = {
   password: true,
   name: 'ban',
   altNames: [],
-  description: `Ban a user.\nArguments: ***<password> <@user> <reason>***.`,
+  description: 'Ban a user.\nArguments: `<password> <user> <reason>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -435,7 +447,7 @@ export const kickCommand: Definitions.command = {
   password: true,
   name: 'kick',
   altNames: [],
-  description: `Kick a user.\nArguments: ***<password> <@user> <reason>***.`,
+  description: 'Kick a user.\nArguments: `<password> <user> <reason>`.',
   inHelp: true,
   onlyBotChatMsg: true,
   blacklistUserRolesChannel: [],
@@ -443,6 +455,20 @@ export const kickCommand: Definitions.command = {
   onlyChannels: [],
   cooldown: 0,
   permLvl: Definitions.PermsRolesEnum.ADMINJR
+};
+export const resetKVCommand: Definitions.command = {
+  enabled: true,
+  password: true,
+  name: 'resetkv',
+  altNames: ['resetdata', 'deletekv', 'deletedata'],
+  description: 'Delete all saved data.\nArguments: `<password>`.',
+  inHelp: true,
+  onlyBotChatMsg: true,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: [],
+  onlyChannels: [],
+  cooldown: 1,
+  permLvl: Definitions.PermsRolesEnum.COOWNER
 };
 
 // all commands
@@ -452,6 +478,7 @@ export const cmds: Array<Definitions.command> = [
   inviteCommand,
   gifCommand,
   reportCommand,
+  clearCommand,
   userStatsCommand,
   showCaseCommand,
   surveyCommand,
@@ -465,13 +492,13 @@ export const cmds: Array<Definitions.command> = [
   punishCommand,
   sayCommand,
   spawnMSGCommand,
-  resetKVCommand,
-  startCommand,
-  stopCommand
+  resetKVCommand
 ];
 // #endregion
 
 // #region not to edit
+export const pylonId: string = '270148059269300224';
+
 export const botCount: number = 5; // number of bots on the server
 
 export const charactersForRandString: string =
