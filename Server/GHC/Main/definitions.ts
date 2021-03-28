@@ -1,5 +1,3 @@
-// Definitions
-
 import * as Settings from './settings';
 
 // main namespace (kv)
@@ -10,7 +8,7 @@ export const Commands: discord.command.CommandGroup = new discord.command.Comman
   {
     defaultPrefix: Settings.prefixes[0],
     additionalPrefixes: Settings.prefixes,
-    description: 'Commands!',
+    description: 'Commands',
     mentionPrefix: false
   }
 );
@@ -26,7 +24,7 @@ export const PunishCmd: discord.interactions.commands.SlashCommandGroup = discor
 // infos about a command (cmd)
 export interface command {
   enabled: boolean; // enables/disables the cmd
-  password?: boolean; // if a password is required
+  password: boolean; // if a password is required
   name: string; // name of the cmd
   altNames: Array<string>; // aliases of the cmd name
   description: string; // the description of the cmd
@@ -64,14 +62,12 @@ export const enum PermsRolesEnum {
 // infos about an user to store in KV
 export interface GHC_User extends pylon.JsonObject {
   id: string; // the id of the user
-  l: string; // the setted language of the user
+  l: 'de' | 'en' | 'fr'; // the setted language of the user
   s: boolean; // current warn state of the user (false = blocked)
   r: number; // number of times reported
   g: number; // number of times blocked
   c: number; // cooldown
   m: number; // written message number
-  ac: number; // apply cooldown
-  as: boolean; // apply state
 }
 
 // Blacklisted words
@@ -103,8 +99,9 @@ export interface botMsg {
     cmdNotChannel: string;
     cmdNotPassword: string;
     cmdNoPerms: string;
+    error: string;
   };
-  de: Object;
+  de: { cmdOnlyCmdChannel: string };
   fr: Object;
 }
 
