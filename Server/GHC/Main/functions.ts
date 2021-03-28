@@ -1,166 +1,21 @@
-import * as Settings from './settings';
 import * as Definitions from './definitions';
-import * as Database from './database';
+import * as Settings from './settings';
 
-// enabled-
-// only channel-
-// whitelisted user
-// whitelisted roles
-// blacklisted channel
-// blacklisted user
-// blacklisted roles
-// general perms (roles X and above)
-// password
-
-// Check stuff for cmd
-export async function OnCmd(
-  msg: discord.GuildMemberMessage,
-  cmd: Definitions.command,
-  pwd?: string
-): Promise<boolean> {
-  if (!Settings.enabled) {
-    // bot disabled
-    await msg?.reply(
-      new discord.Embed({
-        color: Settings.Color.ERROR,
-        title: 'Error',
-        description: Settings.botMessages.en.botDisabled
-      })
-    );
-    return false;
-  }
-
-  if (
-    cmd.cooldown !== 0 &&
-    Date.now() <
-      ((await Database.GetData(`user-${msg.member.user.id}`, 'user'))?.c ??
-        Number.MAX_SAFE_INTEGER)
-  ) {
-    // user is in cooldown
-    await msg?.reply(
-      new discord.Embed({
-        color: Settings.Color.ERROR,
-        title: 'Error',
-        description: Settings.botMessages.en.cmdCooldownMsg.replace(
-          'x',
-          (
-            ((await Database.GetData(`user-${msg.member.user.id}`, 'user'))?.c -
-              Date.now()) /
-            1000
-          ).toString()
-        )
-      })
-    );
-    return false;
-  } else if (cmd.cooldown !== 0) {
-    await Database.UpdateDataValues(
-      `user-${msg.member.user.id}`,
-      (u) => {
-        u.c = Date.now() + cmd.cooldown;
-        return u;
-      },
-      'user'
-    );
-  }
-
-  if (!cmd.enabled) {
-    // cmd disabled
-    await msg?.reply(
-      new discord.Embed({
-        color: Settings.Color.ERROR,
-        title: 'Error',
-        description: Settings.botMessages.en.cmdNotActive
-      })
-    );
-    return false;
-  }
-
-  if (
-    cmd.password === true &&
-    pwd !== ((await Definitions.KV.get<string>(`pwd`)) ?? null)
-  ) {
-    // wrong password
-    await msg?.reply(
-      new discord.Embed({
-        color: Settings.Color.ERROR,
-        title: 'Error',
-        description: Settings.botMessages.en.cmdNotPassword
-      })
-    );
-    return false;
-  }
-
-  if (
-    (cmd.blacklistUserRolesChannel.length !== 0 &&
-      (cmd.blacklistUserRolesChannel.includes(msg.member.user.id) ||
-        msg.member.roles.some((r) =>
-          cmd.blacklistUserRolesChannel.includes(r)
-        ))) ||
-    (Settings.noCommands.length !== 0 &&
-      (Settings.noCommands.includes(msg.member.user.id) ||
-        msg.member.roles.some((r) => Settings.noCommands.includes(r))))
-  ) {
-    // user/role is on global/local blacklist
-    await noPermMsg(msg, cmd);
-    return false;
-  }
-
-  if (
-    (cmd.blacklistUserRolesChannel.length !== 0 &&
-      cmd.blacklistUserRolesChannel.includes(msg.channelId)) ||
-    (cmd.onlyChannels.length !== 0 &&
-      !cmd.onlyChannels.includes(msg.channelId)) ||
-    (Settings.noCommands.length !== 0 &&
-      Settings.noCommands.includes(msg.channelId))
-  ) {
-    // channel is on global/local/manual blacklist
-    await msg
-      ?.reply(
-        new discord.Embed({
-          color: Settings.Color.ERROR,
-          title: 'Error',
-          description: Settings.botMessages.en.cmdNotChannel
-        })
-      )
-      .then(async (m) => setTimeout(async () => await m?.delete(), 10000));
-    return false;
-  }
-
-  if (cmd.onlyBotChatMsg === true) {
-    // only #bot msg
-    await delMsg(
-      await msg?.reply(
-        new discord.Embed({
-          color: Settings.Color.RED,
-          timestamp: new Date().toISOString(),
-          title: 'Warnung',
-          description: `Bitte schreibe diesen Command in den <#${Settings.Channels.CMD}> channel.`
-        })
-      ),
-      10000
-    );
-  }
-
-  if (
-    cmd.whitelistedUserRoles.length !== 0 &&
-    (cmd.whitelistedUserRoles.includes(msg.member.user.id) ||
-      msg.member.roles.some((r) => cmd.whitelistedUserRoles.includes(r)))
-  ) {
-    // user/role has permission because whitelist
-    return true;
-  }
-
-  if (
-    Settings.RolePerms.filter(
-      (p) => Settings.RolePerms.indexOf(p) >= cmd.permLvl
-    ).some((r) => msg.member.roles.includes(r))
-  ) {
-    // user has permission because of role
-    return true;
-  }
-
-  await noPermMsg(msg, cmd);
-  return false;
+export function TimeString(): string {
+  return (
+    '`[' +
+    `${new Date(Date.now())
+      .getHours()
+      .toString()
+      .padStart(2, '0')}:${new Date(Date.now())
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}:${new Date(Date.now())
+      .getSeconds()
+      .toString()
+      .padStart(2, '0')}` +
+    ']`'
+  );
 }
 
 // help msg
@@ -168,24 +23,34 @@ export async function HelpMsg(
   pageNr: number,
   permissionLvl: number | Definitions.PermsRolesEnum
 ): Promise<discord.Embed> {
+  // get all prefixes
+  let prefixString: string = '';
+  for (let i: number = 0; i < Settings.prefixes.length; ) {
+    prefixString += Settings.prefixes[i];
+    if (++i < Settings.prefixes.length) prefixString += '/';
+  }
+
+  // cmds which are in help and for this permission
   const possibleCmds: Array<Definitions.command> = Settings.cmds
     .filter((c) => c.inHelp && c.permLvl <= permissionLvl!)
     .sort((a, b) => a.permLvl - b.permLvl);
+
+  // get the cmds for the given page
+  let commandsArray: Array<Definitions.command> = [];
+  for (let i: number = 0; i < Settings.nrElementsPage; ++i)
+    commandsArray[i] = possibleCmds[i + pageNr * Settings.nrElementsPage];
 
   const nrPages: number = Math.ceil(
     possibleCmds.length / Settings.nrElementsPage
   );
 
-  let commandsArray: Array<Definitions.command> = [];
-  // get the cmds for the given page
-  for (let i: number = 0; i < Settings.nrElementsPage; i++)
-    commandsArray[i] = possibleCmds[i + pageNr * Settings.nrElementsPage];
-
   const embed: discord.Embed = new discord.Embed({
     color: Settings.Color.DEFAULT,
     title: 'Command: *.help*',
     description:
-      '` The prefixes for this server are: "./!" `' +
+      '` The prefixes for this server are: "' +
+      prefixString +
+      '" `' +
       "\n**__Note:__ don't forget a parameter, otherwise a command won't work!**\nTo see the commands for other permission groups, use a number as parameter for the help command. If an argument has a `?` after it, it means that this argument is optional.",
     footer: {
       text: `${pageNr + 1}/${nrPages} - Help Lvl: ${
@@ -196,7 +61,7 @@ export async function HelpMsg(
     }
   });
 
-  commandsArray.forEach(async (cmd) => {
+  commandsArray.forEach(async (cmd) =>
     embed.addField({
       name: `${cmd.name}`,
       value:
@@ -206,8 +71,8 @@ export async function HelpMsg(
         `${cmd.description}\n${
           cmd.password ?? false ? ' Requires password!' : ''
         }`
-    });
-  });
+    })
+  );
 
   return embed;
 }
@@ -230,6 +95,18 @@ export async function Log(
         })
       );
     });
+}
+
+export async function ClearMessages(
+  messageId: string,
+  channelId: string
+): Promise<void> {
+  let messages: string[] =
+    (await Definitions.KV.get(`messages-${channelId}`)) ?? [];
+  messages.push(messageId);
+  while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
+
+  await Definitions.KV.put(`messages-${channelId}`, messages);
 }
 
 // GHC Embeds
@@ -280,9 +157,10 @@ export async function OnError(
     new discord.Embed({
       color: Settings.Color.ERROR,
       title: 'Error',
-      description: `${msg.message.member.toMention()} An error occured! Did you forgot an argument? See the needed arguments with !help. If you didn't forget an argument and you have the permission to do the command, write a bug report in the <#${
-        Settings.Channels.FEEDBACK
-      }> channel please.`
+      description: `${msg.message.member.toMention()} An error occured!\nHere the arguments you need: ${
+        // @ts-ignore
+        msg.command.options.description
+      }`
     })
   );
   if (!msg) {
@@ -304,10 +182,17 @@ export async function delMsg(
   );
 }
 
-// get the size in bytes of an object saved as JSON
-async function GetSize(data: any): Promise<number> {
-  return JSON.stringify(data).length;
+export async function getPwd(pwd?: string): Promise<string | boolean> {
+  const cPwd: string | undefined = await Definitions.KV.get<string>(`pwd`);
+
+  if (cPwd === undefined) return false;
+  if (pwd !== undefined) return cPwd === pwd;
+  console.log('k');
+  return cPwd;
 }
+
+// get the size in bytes of an object saved as JSON
+const GetSize = async (data: any) => JSON.stringify(data).length;
 
 // get size in bytes from a key in KV
 async function GetKeySize(key: string): Promise<number | undefined> {
@@ -360,54 +245,4 @@ function hasProperties(a: any, b: any): boolean {
   }
 
   return true;
-}
-
-// error msg for no permissions
-async function noPermMsg(
-  msg: discord.Message,
-  cmd: Definitions.command
-): Promise<void> {
-  await discord.getGuild(discord.getGuildId()).then(async (guild) => {
-    await discord
-      .getGuildTextChannel(Settings.Channels.BOT)
-      .then(async (channel) => {
-        await channel?.sendMessage(
-          new discord.Embed({
-            color: Settings.Color.ERROR,
-            title: '🔒 Error',
-            timestamp: new Date().toISOString(),
-            thumbnail: { url: msg.member?.user.getAvatarUrl() ?? undefined },
-            footer: {
-              text: 'GHCBot',
-              iconUrl: guild?.getIconUrl()?.toString()
-            },
-            fields: [
-              {
-                name: 'User',
-                value: msg.member?.toMention() ?? `-`,
-                inline: true
-              },
-              { name: 'Channel', value: `<#${msg.channelId}>`, inline: true },
-              { name: 'Command', value: cmd.name, inline: true },
-              {
-                name: 'Message content',
-                value: msg.content ?? `-`,
-                inline: false
-              }
-            ]
-          })
-        );
-      });
-  });
-
-  await msg?.reply(
-    new discord.Embed({
-      color: Settings.Color.ERROR,
-      title: '🔒 Error',
-      description: Settings.botMessages.en.cmdNoPerms.replace(
-        '@user',
-        msg.member!.toMention()
-      )
-    })
-  );
 }
