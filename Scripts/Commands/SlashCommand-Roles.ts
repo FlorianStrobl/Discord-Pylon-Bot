@@ -1,57 +1,77 @@
+// Florian Crafter - March 2021 - v 1.1
+
 // Give user roles they want with custom name and with the role Ids
 // edit all lines with the comment EDIT to make the code work
-
-// EDIT Role name and its ID
-const Role: [string, string][] = [
-  ['role 1', 'id'],
-  ['role 2', 'id'],
-  ['role 3', 'id']
-];
-
-// EDIT channels in which the command can be executed
-const channels = ['channel id 1', 'channel id 2']; // let it completly empty if it should work for every channel
+const roleCmdConfig = {
+  commandName: 'role',
+  commandDescription: 'Give/Remove yourself a role.',
+  ephemeral: true,
+  channels: ['channel id 1', 'channel id 2'], // EDIT let it completly EMPTY to let it work in every channel
+  roles: [
+    // EDIT Role name and its ID
+    ['role 1', 'id'],
+    ['role 2', 'id'],
+    ['role 3', 'id']
+  ]
+};
 
 discord.interactions.commands.register(
   {
-    name: 'role',
-    description: 'Give/Remove yourself a role.',
-    showSourceMessage: true,
+    name: roleCmdConfig.commandName,
+    description: roleCmdConfig.commandDescription,
+    ackBehavior: discord.interactions.commands.AckBehavior.AUTO_EPHEMERAL,
     options: (args) => ({
       role: args.string({
         name: 'role',
         description: 'The role you want.',
         required: true,
-        choices: Role.map((e) => e[0])
+        choices: roleCmdConfig.roles.map((e) => e[0])
       })
     })
   },
   async (msg, { role }) => {
-    if (!channels.includes(msg.channelId) && channels.length !== 0) {
-      await msg.respond(`You can't use this command in this channel!`);
-      await msg.acknowledge(true);
+    if (
+      !roleCmdConfig.channels.includes(msg.channelId) &&
+      roleCmdConfig.channels.length !== 0
+    ) {
+      if (roleCmdConfig.ephemeral)
+        await msg.respondEphemeral(
+          `You can't use this command in this channel!`
+        );
+      else await msg.respond(`You can't use this command in this channel!`);
       return;
     }
 
-    const index = Role.findIndex((t) => t[0] == role);
-
-    if (index !== -1 && msg.member.roles.includes(Role[index][1])) {
+    const _role = roleCmdConfig.roles.find((t) => t[0] == role);
+    if (_role !== undefined && msg.member.roles.includes(_role[1])) {
       try {
-        await msg.member.removeRole(Role[index][1]);
-        await msg.respond(
-          `You already had the <@&${Role[index][1]}> role, so I removed it.`
-        );
+        await msg.member.removeRole(_role[1]);
+        if (roleCmdConfig.ephemeral)
+          await msg.respondEphemeral(
+            `You already had the <@&${_role[1]}> role, so I removed it.`
+          );
+        else
+          msg.respond(
+            `You already had the <@&${_role[1]}> role, so I removed it.`
+          );
       } catch (_) {
-        await msg.respond(`Error with the ${role} role.`);
+        if (roleCmdConfig.ephemeral)
+          await msg.respondEphemeral(`Error with the ${role} role.`);
+        else await msg.respond(`Error with the ${role} role.`);
       }
-    } else if (index !== -1) {
+    } else if (_role !== undefined) {
       try {
-        await msg.member.addRole(Role[index][1]);
-        await msg.respond(`You have now the <@&${Role[index][1]}> role!`);
+        await msg.member.addRole(_role[1]);
+        if (roleCmdConfig.ephemeral)
+          await msg.respondEphemeral(`You have now the <@&${_role[1]}> role!`);
+        else await msg.respond(`You have now the <@&${_role[1]}> role!`);
       } catch (_) {
-        await msg.respond(`Error with the ${role} role.`);
+        if (roleCmdConfig.ephemeral)
+          await msg.respondEphemeral(`Error with the ${role} role.`);
+        else await msg.respond(`Error with the ${role} role.`);
       }
-    } else await msg.respond(`Error with the ${role} role.`);
-
-    await msg.acknowledge(true);
+    } else if (roleCmdConfig.ephemeral)
+      await msg.respondEphemeral(`Error with the ${role} role.`);
+    else await msg.respond(`Error with the ${role} role.`);
   }
 );
