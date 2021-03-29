@@ -3,119 +3,6 @@ import * as Settings from '../Main/settings';
 import * as Functions from '../Main/functions';
 import * as Database from '../Main/database';
 
-export async function Help(
-  reaction: discord.Event.IMessageReactionAdd
-): Promise<void> {
-  if (!Settings.enabled) return;
-
-  const msg: discord.Message | null | undefined = await (
-    await discord.getGuildTextChannel(reaction.channelId)
-  )?.getMessage(reaction.messageId);
-
-  const helps: Array<Definitions.HelpCmd> =
-    (await Definitions.KV.get<Array<Definitions.HelpCmd>>(`helps`)) ?? [];
-  let help: Definitions.HelpCmd | undefined = helps.find(
-    (h) => h.msg === reaction.messageId
-  );
-
-  if (help === undefined) return;
-
-  try {
-    await msg?.deleteReaction(reaction.emoji.name ?? '', reaction.userId);
-  } catch (_) {}
-
-  if (reaction.emoji.name === Settings.Emojis.DISAGREE) {
-    // delete msg
-    let i: number | undefined = helps.findIndex((h) => h.msg === help?.msg);
-    if (i !== undefined) {
-      helps.splice(i, 1);
-
-      if (helps.length !== 0) await Definitions.KV.put('helps', helps);
-      else await Definitions.KV.delete('helps');
-    }
-
-    await msg?.delete();
-    return;
-  }
-
-  if (Settings.numberEmojis.includes(reaction.emoji.name ?? '-'))
-    // the emoji was a number
-    await msg?.edit(
-      await Functions.HelpMsg(
-        Settings.numberEmojis.indexOf(reaction.emoji.name ?? '-'),
-        help.permissionLvl
-      )
-    );
-}
-
-export async function BulkMessageDelete(
-  event: discord.Event.IMessageDeleteBulk
-): Promise<void> {
-  if (!Settings.enabled) return;
-
-  // msg in #message-delete
-  await discord.getGuildTextChannel(Settings.Channels.MESSAGEDELETE).then((c) =>
-    c?.sendMessage({
-      allowedMentions: {},
-      content:
-        Functions.TimeString() +
-        ' (`Bulkd Message Delete`) 🗑️ messages deleted [`' +
-        event.channelId +
-        '`] in <#' +
-        `${event.channelId}>: ${event.ids.length} deleted messages`
-    })
-  );
-}
-
-export async function MessageCreateClearCmd(
-  message: discord.Message
-): Promise<void> {
-  await Functions.ClearMessages(message.id, message.channelId);
-}
-
-export async function MessageDeleteClearCmd(
-  message: discord.Event.IMessageDelete,
-  oldMsg: discord.Message.AnyMessage | null
-) {
-  let messages: string[] =
-    (await Definitions.KV.get(`messages-${message.channelId}`)) ?? [];
-
-  let index: number | undefined = messages.findIndex((m) => m === message.id);
-  if (index === -1) return;
-
-  messages.splice(index, 1);
-
-  if (messages.length !== 0)
-    await Definitions.KV.put(`messages-${message.channelId}`, messages);
-  else await Definitions.KV.delete(`messages-${message.channelId}`);
-}
-
-export async function MessageDelete(
-  event: discord.Event.IMessageDelete,
-  oldMsg: discord.Message.AnyMessage | null
-): Promise<void> {
-  if (!Settings.enabled) return;
-  if (oldMsg?.author.id === Settings.pylonId) return;
-
-  // msg in #message-delete
-  await discord.getGuildTextChannel(Settings.Channels.MESSAGEDELETE).then((c) =>
-    c?.sendMessage({
-      allowedMentions: {},
-      content:
-        Functions.TimeString() +
-        ' (`Message Delete`) 🗑️ ' +
-        oldMsg!.member?.toMention() +
-        ' message deleted [`' +
-        event.channelId +
-        '`] in <#' +
-        event.channelId +
-        '>: ```' +
-        (oldMsg?.content ?? '-') +
-        '```'
-    })
-  );
-}
-
 export async function Rules(
   reaction: discord.Event.IMessageReactionAdd
 ): Promise<void> {
@@ -182,6 +69,51 @@ export async function Rules(
   }
 }
 
+export async function Help(
+  reaction: discord.Event.IMessageReactionAdd
+): Promise<void> {
+  if (!Settings.enabled) return;
+
+  const msg: discord.Message | null | undefined = await (
+    await discord.getGuildTextChannel(reaction.channelId)
+  )?.getMessage(reaction.messageId);
+
+  const helps: Array<Definitions.HelpCmd> =
+    (await Definitions.KV.get<Array<Definitions.HelpCmd>>(`helps`)) ?? [];
+  let help: Definitions.HelpCmd | undefined = helps.find(
+    (h) => h.msg === reaction.messageId
+  );
+
+  if (help === undefined) return;
+
+  try {
+    await msg?.deleteReaction(reaction.emoji.name ?? '', reaction.userId);
+  } catch (_) {}
+
+  if (reaction.emoji.name === Settings.Emojis.DISAGREE) {
+    // delete msg
+    let i: number | undefined = helps.findIndex((h) => h.msg === help?.msg);
+    if (i !== undefined) {
+      helps.splice(i, 1);
+
+      if (helps.length !== 0) await Definitions.KV.put('helps', helps);
+      else await Definitions.KV.delete('helps');
+    }
+
+    await msg?.delete();
+    return;
+  }
+
+  if (Settings.numberEmojis.includes(reaction.emoji.name ?? '-'))
+    // the emoji was a number
+    await msg?.edit(
+      await Functions.HelpMsg(
+        Settings.numberEmojis.indexOf(reaction.emoji.name ?? '-'),
+        help.permissionLvl
+      )
+    );
+}
+
 export async function BlacklistedWords(msg: discord.Message): Promise<void> {
   if (
     !Settings.enabled ||
@@ -235,4 +167,72 @@ export async function BlacklistedWords(msg: discord.Message): Promise<void> {
   );
 
   await msg?.delete();
+}
+
+export async function MessageDelete(
+  event: discord.Event.IMessageDelete,
+  oldMsg: discord.Message.AnyMessage | null
+): Promise<void> {
+  if (!Settings.enabled) return;
+  if (oldMsg?.author.id === Settings.pylonId) return;
+
+  // msg in #message-delete
+  await discord.getGuildTextChannel(Settings.Channels.MESSAGEDELETE).then((c) =>
+    c?.sendMessage({
+      allowedMentions: {},
+      content:
+        Functions.TimeString() +
+        ' (`Message Delete`) 🗑️ ' +
+        oldMsg!.member?.toMention() +
+        ' message deleted [`' +
+        event.channelId +
+        '`] in <#' +
+        event.channelId +
+        '>: ```' +
+        (oldMsg?.content ?? '-') +
+        '```'
+    })
+  );
+}
+
+export async function BulkMessageDelete(
+  event: discord.Event.IMessageDeleteBulk
+): Promise<void> {
+  if (!Settings.enabled) return;
+
+  // msg in #message-delete
+  await discord.getGuildTextChannel(Settings.Channels.MESSAGEDELETE).then((c) =>
+    c?.sendMessage({
+      allowedMentions: {},
+      content:
+        Functions.TimeString() +
+        ' (`Bulkd Message Delete`) 🗑️ messages deleted [`' +
+        event.channelId +
+        '`] in <#' +
+        `${event.channelId}>: ${event.ids.length} deleted messages`
+    })
+  );
+}
+
+export async function MessageCreateClearCmd(
+  message: discord.Message
+): Promise<void> {
+  await Functions.ClearMessages(message.id, message.channelId);
+}
+
+export async function MessageDeleteClearCmd(
+  message: discord.Event.IMessageDelete,
+  oldMsg: discord.Message.AnyMessage | null
+): Promise<void> {
+  let messages: string[] =
+    (await Definitions.KV.get(`messages-${message.channelId}`)) ?? [];
+
+  let index: number | undefined = messages.findIndex((m) => m === message.id);
+  if (index === -1) return;
+
+  messages.splice(index, 1);
+
+  if (messages.length !== 0)
+    await Definitions.KV.put(`messages-${message.channelId}`, messages);
+  else await Definitions.KV.delete(`messages-${message.channelId}`);
 }
