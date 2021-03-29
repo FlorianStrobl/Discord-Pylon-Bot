@@ -1,5 +1,3 @@
-// Reglen+Willkommen+Feedback channel, Befehle nur in #bot-befehle, Bewerber Reaktion
-
 import * as Definitions from '../Main/definitions';
 import * as Settings from '../Main/settings';
 import * as Functions from '../Main/functions';
