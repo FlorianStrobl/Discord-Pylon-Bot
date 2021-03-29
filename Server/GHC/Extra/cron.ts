@@ -1,10 +1,7 @@
-// Cron - automatic stuff
-
-import * as Functions from '../Main/functions';
-import * as Settings from '../Main/settings';
 import * as Definitions from '../Main/definitions';
+import * as Settings from '../Main/settings';
 
-export async function NewPassword(): Promise<void> {
+export function NewPassword(): void {
   if (!Settings.enabled) return;
 
   // generating new password
@@ -15,7 +12,7 @@ export async function NewPassword(): Promise<void> {
     );
 
   // password given to the admins
-  await discord.getGuildTextChannel(Settings.Channels.ADMIN).then((c) =>
+  discord.getGuildTextChannel(Settings.Channels.ADMIN).then((c) =>
     c?.edit({
       topic: `Das ist der **Admin Only** Chat. Passwort: ||${pwd}|| (Gültig bis zum: **${new Date(
         Date.now() + Settings.timeShift
@@ -24,35 +21,36 @@ export async function NewPassword(): Promise<void> {
   );
 
   // save the new password
-  await Definitions.KV.put(`pwd`, pwd);
+  Definitions.KV.put(`pwd`, pwd);
 }
 
-export async function StatsChannels(): Promise<void> {
+export function StatsChannels(): void {
   if (!Settings.enabled) return;
 
-  const guild: discord.Guild = await discord.getGuild();
+  discord.getGuild().then((guild) => {
+    // User count
+    discord.getGuildVoiceChannel(Settings.Channels.STATSUSER).then((c) =>
+      c?.edit({
+        name:
+          'Members: ' +
+          ((guild.memberCount ?? 0) - Settings.botCount).toString()
+      })
+    );
 
-  // User count
-  await discord.getGuildVoiceChannel(Settings.Channels.STATSUSER).then((c) =>
-    c?.edit({
-      name:
-        'Members: ' + ((guild.memberCount ?? 0) - Settings.botCount).toString()
-    })
-  );
-
-  // Boost count
-  await discord.getGuildVoiceChannel(Settings.Channels.STATSBOOST).then((c) =>
-    c?.edit({
-      name: 'Boosters: ' + guild.premiumSubscriptionCount.toString()
-    })
-  );
+    // Boost count
+    discord.getGuildVoiceChannel(Settings.Channels.STATSBOOST).then((c) =>
+      c?.edit({
+        name: 'Boosters: ' + guild.premiumSubscriptionCount.toString()
+      })
+    );
+  });
 }
 
-export async function NewsMessages(): Promise<void> {
+export function NewsMessages(): void {
   if (!Settings.enabled) return;
 
   // special day msg (only on the specified date with the specified text)
-  await MsgNewschannel(
+  MsgNewschannel(
     Settings.newsMsgs.find(
       (nm) =>
         nm.date ===
@@ -85,70 +83,59 @@ export async function NewsMessages(): Promise<void> {
     });
   */
 
-  // special days:
-
-  if (new Date().getDay() === 5 && new Date().getHours() === 14) {
+  // special days extra:
+  if (new Date().getDay() === 5 && new Date().getHours() === 14)
     // friday msg
-    await MsgNewschannel(
+    MsgNewschannel(
       `Hoch die Hände Wochenende! 🎉  Es ist Freitag, schönes Wochenende an euch! <a:party_kermit:720587729351737436> <a:party_kermit:720587729351737436>`
     );
-  } else if (
+
+  if (
     new Date().getDate() <= 7 &&
     new Date().getDay() === 0 &&
     new Date().getMonth() === 3 &&
     new Date().getHours() === 12
-  ) {
-    // easter msg
-    await MsgNewschannel('Schöne Ostern!');
-  } else if (
+  )
+    MsgNewschannel('Schöne Ostern!'); // easter msg
+
+  if (
     new Date().getDay() === 0 &&
     new Date().getHours() + 1 === 13 &&
     (new Date().getMonth() + 1 === 11 || new Date().getMonth() + 1 === 12)
   ) {
     // a sunday in november or december at 14h
     const weekTime: number = 7 * 24 * 60 * 60 * 1000;
-    const nowInOneWeek: number = Date.now() + weekTime;
-    const twoInOneWeek: number = Date.now() + 2 * weekTime;
-    const threeInOneWeek: number = Date.now() + 3 * weekTime;
-    const fourInOneWeek: number = Date.now() + 4 * weekTime;
+    const now: number = Date.now();
+
     if (
-      (new Date(nowInOneWeek).getDate() === 24 &&
-        new Date(nowInOneWeek).getMonth() + 1 === 12) ||
-      (new Date(twoInOneWeek).getDate() === 24 &&
-        new Date(twoInOneWeek).getMonth() + 1 === 12) ||
-      (new Date(threeInOneWeek).getDate() === 24 &&
-        new Date(threeInOneWeek).getMonth() + 1 === 12) ||
-      (new Date(fourInOneWeek).getDate() === 24 &&
-        new Date(fourInOneWeek).getMonth() + 1 === 12)
-    ) {
-      await MsgNewschannel(`Schönen Sonntag!`);
-    }
+      (new Date(now + weekTime).getDate() === 24 &&
+        new Date(now + weekTime).getMonth() + 1 === 12) ||
+      (new Date(now + 2 * weekTime).getDate() === 24 &&
+        new Date(now + 2 * weekTime).getMonth() + 1 === 12) ||
+      (new Date(now + 3 * weekTime).getDate() === 24 &&
+        new Date(now + 3 * weekTime).getMonth() + 1 === 12) ||
+      (new Date(now + 4 * weekTime).getDate() === 24 &&
+        new Date(now + 4 * weekTime).getMonth() + 1 === 12)
+    )
+      MsgNewschannel(`Schönen Sonntag!`);
   }
 }
 
 // send embed in #news with or without title
-async function MsgNewschannel(
-  description: string | undefined,
-  title?: string
-): Promise<void> {
+function MsgNewschannel(description: string | undefined, title?: string): void {
   if (!description) return;
 
-  await discord
-    .getGuildNewsChannel(Settings.Channels.NEWS)
-    .then(async (channel) => {
-      await channel?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.DEFAULT,
-          description: description,
-          title:
-            title === undefined || title === null || title === ''
-              ? undefined
-              : title,
-          timestamp:
-            title === undefined || title === null || title === ''
-              ? undefined
-              : new Date().toISOString()
-        })
-      );
-    });
+  discord.getGuildNewsChannel(Settings.Channels.NEWS).then((channel) =>
+    channel?.sendMessage(
+      new discord.Embed({
+        color: Settings.Color.DEFAULT,
+        description: description,
+        title: title === undefined || title === '' ? undefined : title,
+        timestamp:
+          title === undefined || title === ''
+            ? undefined
+            : new Date().toISOString()
+      })
+    )
+  );
 }
