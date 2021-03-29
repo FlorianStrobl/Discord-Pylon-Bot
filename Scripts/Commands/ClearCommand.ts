@@ -1,4 +1,4 @@
-// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.1
+// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.2
 
 // Save the last 350 messages (it's about 350) from a channel and delete them with !clear n. The code DOESN'T save the messages from Pylon itself so these can't be deleted :(
 // To delete the messages of the bot itself, you can use my SendMessage() function, which saves the ids of the bot ids too
