@@ -73,10 +73,16 @@ async function DeleteClearMessages(
   else if (toDeleteMessages.length !== 0)
     await channel?.bulkDeleteMessages(toDeleteMessages);
 
-  await KV.put(
-    `messages-${channelId}`,
-    messages.filter((mId) => !toDeleteMessages.includes(mId))
-  );
+  if (toDeleteMessages.length !== 0)
+    await KV.put(
+      `messages-${channelId}`,
+      messages.filter((mId) => !toDeleteMessages.includes(mId))
+    );
+  else {
+    try {
+      await KV.delete(`messages-${channelId}`);
+    } catch (_) { }
+  }
 
   return toDeleteMessages.length;
 }
