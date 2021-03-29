@@ -1,4 +1,4 @@
-// Florian Crafter - 02.2021 - Version 1.7
+// Florian Crafter - 02.2021 - Version 1.7a
 // Question about or need help for the code? Read the docs and look at the examples and at last DM me on Discord (Clash Crafter#7370).
 
 // READ AT LEAST THE CAPSLOCK LINES (like "HOW TO USE IT") & EDIT THE LINES WITH // EDIT AT THE END
@@ -250,8 +250,10 @@ export async function GetData(
   if (Array.isArray(index)) {
     let data: (DataStructure | undefined)[] = [];
     for (let i: number = 0; i < index.length; ++i)
-      // @ts-ignore This won't return a (DataStructure | undefined)[] because you give it only a single string/number.
-      data.push(await GetData(index[i], namespace));
+      // This won't return a (DataStructure | undefined)[] because you give it only a single string/number.
+      data.push(
+        (await GetData(index[i], namespace)) as DataStructure | undefined
+      );
     return data;
   }
 
@@ -326,8 +328,10 @@ export async function UpdateDataValues(
   else KV = Default_KV;
 
   // try get current data
-  // @ts-ignore it won't return a array
-  let data: DataStructure | undefined = await GetData(index, KV.namespace);
+  // it won't return a array
+  let data: DataStructure | undefined = (await GetData(index, KV.namespace)) as
+    | DataStructure
+    | undefined;
   if (data === undefined) return false;
 
   const updatedData: DataStructure = await newData(data); // updated object localy
@@ -353,8 +357,11 @@ export async function DuplicateData(
     KV = new pylon.KVNamespace(namespace);
   else KV = Default_KV;
 
-  // @ts-ignore it won't return a array
-  let data: DataStructure | undefined = await GetData(oldIndex, KV.namespace);
+  // it won't return a array
+  let data: DataStructure | undefined = (await GetData(
+    oldIndex,
+    KV.namespace
+  )) as DataStructure | undefined;
 
   // old key doesnt exist or new key is used already
   if (
@@ -397,8 +404,11 @@ export async function ChangeIndex(
     KV = new pylon.KVNamespace(namespace);
   else KV = Default_KV;
 
-  // @ts-ignore it won't return a array
-  let data: DataStructure | undefined = await GetData(oldIndex, KV.namespace);
+  // it won't return a array
+  let data: DataStructure | undefined = (await GetData(
+    oldIndex,
+    KV.namespace
+  )) as DataStructure | undefined;
   if (
     data === undefined ||
     (await GetData(newIndex, KV.namespace)) !== undefined
@@ -424,16 +434,16 @@ export async function AllIndexes(
   else KV = Default_KV;
 
   const data: DataStructure[] | undefined = await GetAllData(
-    filter,
-    KV.namespace
+    KV.namespace,
+    filter
   );
 
   if (data === undefined) return []; // no data is saved
 
   let indexes: string[] = [];
 
-  // @ts-ignore this will be no problem, since you can't save data without an index so you know that this works
-  for await (let d of data) indexes.push(d[indexName]!);
+  // this will be no problem, since you can't save data without an index so you know that this works
+  for await (let d of data) indexes.push(d[indexName]! as string);
 
   return indexes;
 }
