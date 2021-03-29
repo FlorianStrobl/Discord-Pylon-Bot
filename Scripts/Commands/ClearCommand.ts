@@ -6,6 +6,32 @@
 
 const KV = new pylon.KVNamespace('clear');
 
+Commands.on(
+  {
+    name: 'clear'
+  },
+  (args) => ({
+    n: args.number()
+  }),
+  async (message, { n }) => {
+    await message.delete();
+    
+    const func: number | undefined = await DeleteClearMessages(message.channelId, n);
+
+    let responseMsg: discord.Message;
+    if (func === undefined)
+      responseMsg = await message?.reply(
+        `Deleted no messages from this channel.`
+      );
+    else
+      responseMsg = await message?.reply(
+        `Deleted the last ${func} message(s) from this channel.`
+      );
+
+    setTimeout(() => responseMsg?.delete(), 10000);
+  }
+);
+
 discord.on(
   discord.Event.MESSAGE_CREATE,
   async (message) => await SaveClearMessages(message.channelId, message.id)
@@ -25,33 +51,7 @@ discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
   else await KV.delete(`messages-${message.channelId}`);
 });
 
-Commands.on(
-  {
-    name: 'clear'
-  },
-  (args) => ({
-    n: args.number()
-  }),
-  async (message, { n }) => {
-    await message.delete();
-    
-    const func: number | undefined = await deleteMessages(message.channelId, n);
-
-    let responseMsg: discord.Message;
-    if (func === undefined)
-      responseMsg = await message?.reply(
-        `Deleted no messages from this channel.`
-      );
-    else
-      responseMsg = await message?.reply(
-        `Deleted the last ${func} message(s) from this channel.`
-      );
-
-    setTimeout(() => responseMsg?.delete(), 10000);
-  }
-);
-
-async function deleteMessages(
+async function DeleteClearMessages(
   channelId: string,
   nr: number
 ): Promise<number | undefined> {
