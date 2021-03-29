@@ -6,7 +6,7 @@ const KV = new pylon.KVNamespace('clear');
 
 discord.on(
   discord.Event.MESSAGE_CREATE,
-  async (message) => await SaveMessageIds(message.channelId, message.id)
+  async (message) => await SaveClearMessages(message.channelId, message.id)
 );
 
 discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
@@ -79,11 +79,16 @@ async function deleteMessages(
   return toDeleteMessages.length;
 }
 
-async function SaveMessageIds(channelId: string, messageId: string) {
-  let messages: string[] = (await KV.get(`messages-${channelId}`)) ?? [];
+export async function SaveClearMessages(
+  channelId: string | undefined,
+  messageId: string | undefined
+): Promise<void> {
+  if (messageId === undefined || channelId === undefined) return;
+  
+  let messages: string[] =
+    (await Definitions.KV.get(`messages-${channelId}`)) ?? [];
   messages.push(messageId);
-
   while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
 
-  await KV.put(`messages-${channelId}`, messages);
+  await Definitions.KV.put(`messages-${channelId}`, messages);
 }
