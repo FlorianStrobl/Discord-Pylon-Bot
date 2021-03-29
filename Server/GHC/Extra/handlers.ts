@@ -22,7 +22,9 @@ export async function Help(
 
   if (help === undefined) return;
 
-  await msg?.deleteReaction(reaction.emoji.name ?? '', reaction.userId);
+  try {
+    await msg?.deleteReaction(reaction.emoji.name ?? '', reaction.userId);
+  } catch (_) {}
 
   if (reaction.emoji.name === Settings.Emojis.DISAGREE) {
     // delete msg
@@ -48,9 +50,8 @@ export async function Help(
     );
 }
 
-export async function MessageDelete(
-  event: discord.Event.IMessageDelete,
-  oldMsg: discord.Message.AnyMessage | null
+export async function BulkMessageDelete(
+  event: discord.Event.IMessageDeleteBulk
 ): Promise<void> {
   if (!Settings.enabled) return;
 
@@ -59,12 +60,60 @@ export async function MessageDelete(
     c?.sendMessage({
       allowedMentions: {},
       content:
-        '`' +
-        `[${new Date().getDate() + 1}.${new Date().getMonth() +
-          1} - ${new Date().getHours() + 1}:${new Date().getMinutes()}]` +
-        '`' +
-        ` Message was deleted in <#${event.channelId}>.` +
-        (oldMsg !== null ? ` Author: ${oldMsg!.member?.toMention()}.` : '')
+        Functions.TimeString() +
+        ' (`Bulkd Message Delete`) 🗑️ messages deleted [`' +
+        event.channelId +
+        '`] in <#' +
+        `${event.channelId}>: ${event.ids.length} deleted messages`
+    })
+  );
+}
+
+export async function MessageCreateClearCmd(
+  message: discord.Message
+): Promise<void> {
+  await Functions.ClearMessages(message.id, message.channelId);
+}
+
+export async function MessageDeleteClearCmd(
+  message: discord.Event.IMessageDelete,
+  oldMsg: discord.Message.AnyMessage | null
+) {
+  let messages: string[] =
+    (await Definitions.KV.get(`messages-${message.channelId}`)) ?? [];
+
+  let index: number | undefined = messages.findIndex((m) => m === message.id);
+  if (index === -1) return;
+
+  messages.splice(index, 1);
+
+  if (messages.length !== 0)
+    await Definitions.KV.put(`messages-${message.channelId}`, messages);
+  else await Definitions.KV.delete(`messages-${message.channelId}`);
+}
+
+export async function MessageDelete(
+  event: discord.Event.IMessageDelete,
+  oldMsg: discord.Message.AnyMessage | null
+): Promise<void> {
+  if (!Settings.enabled) return;
+  if (oldMsg?.author.id === Settings.pylonId) return;
+
+  // msg in #message-delete
+  await discord.getGuildTextChannel(Settings.Channels.MESSAGEDELETE).then((c) =>
+    c?.sendMessage({
+      allowedMentions: {},
+      content:
+        Functions.TimeString() +
+        ' (`Message Delete`) 🗑️ ' +
+        oldMsg!.member?.toMention() +
+        ' message deleted [`' +
+        event.channelId +
+        '`] in <#' +
+        event.channelId +
+        '>: ```' +
+        (oldMsg?.content ?? '-') +
+        '```'
     })
   );
 }
@@ -89,16 +138,16 @@ export async function Rules(
   )
     return;
 
-  // @ts-ignore gets the data of the user
-  const userdata: Definitions.GHC_User | undefined = await Database.GetData(
+  // gets the data of the user
+  const userdata: Definitions.GHC_User | undefined = (await Database.GetData(
     `user-${reaction.userId}`,
     'user'
-  );
+  )) as Definitions.GHC_User | undefined;
 
   if (userdata === undefined)
     await Database.SaveData(
       {
-        i: `user-${reaction.userId}`,
+        index: `user-${reaction.userId}`,
         l: 'DE',
         s: true,
         r: 0,
@@ -112,13 +161,7 @@ export async function Rules(
 
   if ((userdata?.s ?? true) === true) {
     //  the user accepted the rules so the user gets the member or maintenance role and a welcome msg is throwen in the #welcome channel.
-    if (
-      (await Definitions.KV.get<boolean>(`serverStatus`)) === true ||
-      (await Definitions.KV.get<boolean>(`serverStatus`)) === undefined
-    )
-      // no maintenance work
-      await member.addRole(Settings.Roles.MEMBER);
-    else await member.addRole(Settings.Roles.MAINTENANCE); // maintenance work
+    await member.addRole(Settings.Roles.MEMBER);
 
     await discord.getGuildTextChannel(Settings.Channels.WELCOME).then((c) =>
       c?.sendMessage(
@@ -137,169 +180,11 @@ export async function Rules(
     );
   } else {
     // user was banned befor rejoining the guild, so he gets the blocked role or maintenance
-    if (
-      (await Definitions.KV.get<boolean>(`serverStatus`)) === true ||
-      (await Definitions.KV.get<boolean>(`serverStatus`)) === undefined
-    )
-      // no maintenance work
-      await member?.addRole(Settings.Roles.BLOCKED);
-    else await member?.addRole(Settings.Roles.MAINTENANCE); // maintenance work
+    await member?.addRole(Settings.Roles.BLOCKED);
   }
 }
 
-export async function NewApply(
-  reaction: discord.Event.IMessageReactionAdd
-): Promise<void> {
-  if (
-    !Settings.enabled ||
-    reaction.channelId !== Settings.Channels.APPLYS ||
-    reaction.emoji.name !== Settings.Emojis.APPLY
-  )
-    return;
-
-  const message: discord.Message | null | undefined = await (
-    await discord.getGuildTextChannel(reaction.channelId)
-  )?.getMessage(reaction.messageId);
-
-  // ratelimits: return if user did react in the last X milliseconds and delete his reaction
-  if (
-    (await Definitions.KV.get<number>(`applier.${reaction.userId}`)) !==
-    undefined
-  ) {
-    // in last two seconds reacted so default return with reaction deletion
-    Definitions.KV.put(`applier.${reaction.userId}`, null, {
-      ttl: 5000
-    });
-    await message?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
-    return;
-  } else {
-    // not in two seconds
-    Definitions.KV.put(`applier.${reaction.userId}`, null, {
-      ttl: 5000
-    });
-
-    if (
-      // @ts-ignore
-      ((await Database.GetData(`user-${reaction.userId}`, 'user'))['ac'] ?? 0) >
-      Date.now()
-    ) {
-      // but in last 24h
-      await message?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
-      return;
-    }
-  }
-
-  if (
-    Settings.cantApply.some((r) => reaction.member?.roles.includes(r)) ||
-    Settings.cantApply.includes(reaction.userId)
-  ) {
-    // user and or role is blacklisted from appling
-    await message?.deleteReaction(Settings.Emojis.APPLY, reaction.userId);
-    return;
-  }
-
-  await Database.UpdateDataValues(
-    `user-${reaction.userId}`,
-    (u) => {
-      u['ac'] = Settings.applyReactionDelay * 1000 + Date.now();
-      u['as'] = true;
-      return u;
-    },
-    'user'
-  );
-
-  await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
-    c?.sendMessage(
-      new discord.Embed({
-        color: Settings.Color.DEFAULT,
-        timestamp: new Date().toISOString(),
-        title: 'New applicant!',
-        description: `${reaction.member?.toMention()} apply for the moderator role!`
-      })
-    )
-  );
-}
-
-export async function AbortApply(
-  reaction: discord.Event.IMessageReactionAdd
-): Promise<void> {
-  if (
-    !Settings.enabled ||
-    reaction.channelId !== Settings.Channels.APPLYS ||
-    reaction.emoji.name !== Settings.Emojis.APPLY ||
-    Settings.cantApply.some((r) => reaction.member?.roles.includes(r)) ||
-    Settings.cantApply.includes(reaction.userId)
-  )
-    return;
-
-  if (
-    (await Definitions.KV.get<number>(`applier.${reaction.userId}`)) !==
-    undefined
-  )
-    return;
-
-  await Database.UpdateDataValues(
-    `user-${reaction.userId}`,
-    (u) => {
-      u['as'] = false;
-      return u;
-    },
-    'user'
-  );
-
-  await discord.getGuildTextChannel(Settings.Channels.BOT).then((c) =>
-    c?.sendMessage(
-      new discord.Embed({
-        color: Settings.Color.DEFAULT,
-        timestamp: new Date().toISOString(),
-        title: 'Application removed!',
-        description: `${reaction.member?.toMention()} withdraws his application.`
-      })
-    )
-  );
-}
-
-export async function Feedback(msg: discord.Message): Promise<void> {
-  if (
-    !Settings.enabled ||
-    msg.channelId !== Settings.Channels.FEEDBACK ||
-    msg.member?.user.bot
-  )
-    return;
-
-  await discord.getGuildTextChannel(Settings.Channels.REPORT).then((c) =>
-    c?.sendMessage(
-      new discord.Embed({
-        color: Settings.Color.GREEN,
-        timestamp: new Date().toISOString(),
-        author: {
-          iconUrl: msg.member?.user.getAvatarUrl() ?? undefined,
-          name: msg.member?.user.username
-        },
-        title: 'Feedback',
-        fields: [
-          { name: 'User', value: msg.member?.toMention() ?? '-' },
-          { name: 'Message', value: msg.content }
-        ]
-      })
-    )
-  );
-
-  await Functions.delMsg(
-    await msg?.reply(
-      new discord.Embed({
-        color: Settings.Color.DEFAULT,
-        title: 'Feedback',
-        description: `${msg.member?.toMention()} Deine Nachricht wurde an das Team weitergeleitet.`
-      })
-    ),
-    10000
-  );
-
-  await msg?.delete();
-}
-
-export async function BlacklistedWords(msg: discord.Message) {
+export async function BlacklistedWords(msg: discord.Message): Promise<void> {
   if (
     !Settings.enabled ||
     Settings.blackListedWords.length === 0 ||
