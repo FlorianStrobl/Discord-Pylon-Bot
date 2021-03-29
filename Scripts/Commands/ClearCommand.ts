@@ -1,4 +1,4 @@
-// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.2a
+// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.3
 
 // Save the last 350 messages (it's about 350) from a channel and delete them with !clear n. The code DOESN'T save the messages from Pylon itself so these can't be deleted :(
 // To delete the messages of the bot itself, you can use my SendMessage() function, which saves the ids of the bot ids too
@@ -12,37 +12,37 @@ Commands.on(
     name: 'clear'
   },
   (args) => ({
-    n: args.number()
+    number: args.number()
   }),
-  async (message, { n }) => {
-    await message.delete();
-    
-    const func: number | undefined = await DeleteClearMessages(message.channelId, n);
+  async (message, { number }) => {
+    const numberOfDeletedMessages: number = await DeleteClearMessages(
+      message.channelId,
+      number
+    );
 
-    let responseMsg: discord.Message;
-    if (func === undefined)
-      responseMsg = await message?.reply(
-        `Deleted no messages from this channel.`
-      );
+    let response: discord.Message;
+    if (numberOfDeletedMessages === 0)
+      response = await message?.reply(`No messages deleted.`);
     else
-      responseMsg = await message?.reply(
-        `Deleted the last ${func} message(s) from this channel.`
+      response = await message?.reply(
+        `Deleted the last ${numberOfDeletedMessages} message(s) from this channel.`
       );
 
-    setTimeout(() => responseMsg?.delete(), 10000);
+    setTimeout(() => response?.delete(), 10000);
+
+    await message?.delete();
   }
 );
 
-discord.on(
-  discord.Event.MESSAGE_CREATE,
-  async (message) => await SaveClearMessages(message.channelId, message.id)
+discord.on(discord.Event.MESSAGE_CREATE, (message) =>
+  SaveClearMessages(message.channelId, message.id)
 );
 
 discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
   let messages: string[] =
     (await KV.get(`messages-${message.channelId}`)) ?? [];
 
-  let index: number | undefined = messages.findIndex((m) => m === message.id);
+  let index: number = messages.findIndex((m) => m === message.id);
   if (index === -1) return;
 
   messages.splice(index, 1);
@@ -55,9 +55,9 @@ discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
 async function DeleteClearMessages(
   channelId: string,
   nr: number
-): Promise<number | undefined> {
+): Promise<number> {
   let messages: string[] | undefined = await KV.get(`messages-${channelId}`);
-  if (messages === undefined) return undefined;
+  if (messages === undefined) return 0;
 
   const channel = await discord.getGuildTextChannel(channelId);
 
@@ -69,20 +69,26 @@ async function DeleteClearMessages(
   )
     toDeleteMessages.push(messages[i]);
 
-  if (toDeleteMessages.length === 1)
-    await (await channel?.getMessage(toDeleteMessages[0]))?.delete();
-  else if (toDeleteMessages.length !== 0)
-    await channel?.bulkDeleteMessages(toDeleteMessages);
+  if (toDeleteMessages.length === 1) {
+    try {
+      await (await channel?.getMessage(toDeleteMessages[0]))?.delete();
+    } catch (_) {}
+  } else if (toDeleteMessages.length !== 0) {
+    try {
+      await channel?.bulkDeleteMessages(toDeleteMessages);
+    } catch (_) {}
+  }
 
-  if (toDeleteMessages.length !== 0)
-    await KV.put(
-      `messages-${channelId}`,
-      messages.filter((mId) => !toDeleteMessages.includes(mId))
-    );
-  else {
+  const currentMessages: string[] = messages.filter(
+    (m) => !toDeleteMessages.includes(m)
+  );
+
+  if (currentMessages.length === 0)
     try {
       await KV.delete(`messages-${channelId}`);
-    } catch (_) { }
+    } catch (_) {}
+  else {
+    await KV.put(`messages-${channelId}`, currentMessages);
   }
 
   return toDeleteMessages.length;
@@ -93,9 +99,8 @@ export async function SaveClearMessages(
   messageId: string | undefined
 ): Promise<void> {
   if (messageId === undefined || channelId === undefined) return;
-  
-  let messages: string[] =
-    (await KV.get(`messages-${channelId}`)) ?? [];
+
+  let messages: string[] = (await KV.get(`messages-${channelId}`)) ?? [];
   messages.push(messageId);
   while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
 
