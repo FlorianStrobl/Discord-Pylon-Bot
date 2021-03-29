@@ -5,6 +5,7 @@
 // (https://gist.github.com/FlorianStrobl/8c606ce857eb6c6d422fc47263e9446f)
 
 const KV = new pylon.KVNamespace('clear');
+const Commands = new discord.command.CommandGroup();
 
 Commands.on(
   {
