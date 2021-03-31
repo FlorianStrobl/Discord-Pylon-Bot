@@ -1,3 +1,5 @@
+// THIS IS AN EXAMPLE. YOU NEED THE REAL DATABASE CODE SO THAT THIS WORKS
+
 /* This here are examples to my database functions. If you still have questions DM me on Discord (Clash Crafter#7370)
  * Were are the functions? Here: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts"!
  *
