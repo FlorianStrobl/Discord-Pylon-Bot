@@ -8,6 +8,7 @@
 // all output: 300000 (unit: milliseconds)
 
 // minutes and hours support ':' the rest doesn't. You can tho use everywere '.'
+// only ONE unit. "5:30 min" is good, "5 min 30 sec" is bad
 
 enum timeUnits {
   ns = 1e-6,
