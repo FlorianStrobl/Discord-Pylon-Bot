@@ -36,7 +36,7 @@ const timeUnitsAlliases = {
   w: ['wk(s)', 'week(s)'],
   mth: ['mths', 'month(s)'],
   y: ['year(s)'],
-  a: ['julianYear(s)'],
+  a: ['julianyear(s)'],
   dec: ['decade(s)'],
   cen: ['cent(s)', 'century(s)']
 };
