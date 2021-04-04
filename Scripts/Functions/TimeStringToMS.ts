@@ -7,6 +7,8 @@
 // CustomTimeStringToMS("5.5 min");
 // all output: 300000 (unit: milliseconds)
 
+// minutes and hours support ':' the rest doesn't. You can tho use everywere '.'
+
 enum timeUnits {
   ns = 1e-6,
   μs = 1e-3,
