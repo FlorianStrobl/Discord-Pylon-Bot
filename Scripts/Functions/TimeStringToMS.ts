@@ -38,7 +38,7 @@ const timeUnitsAlliases = {
   y: ['year(s)'],
   a: ['julianyear(s)'],
   dec: ['decade(s)'],
-  cen: ['cent(s)', 'century(s)']
+  cen: ['cent(s)', 'century', 'centuries']
 };
 
 export function CustomTimeStringToMS(time: string): number | undefined {
