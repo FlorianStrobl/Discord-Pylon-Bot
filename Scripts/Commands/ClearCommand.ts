@@ -53,7 +53,9 @@ discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
 });
 
 discord.on(discord.Event.CHANNEL_DELETE, async (channel) => {
-  await Database.DeleteData(`messages-${channel.id}`, 'clear');
+  try {
+      await KV.delete(`messages-${channel.id}`);
+  } catch (e) { }
 });
 
 async function DeleteClearMessages(
