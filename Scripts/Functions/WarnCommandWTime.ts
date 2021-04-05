@@ -1,4 +1,4 @@
-// Florian Crafter - March 2021 - Version 1.0
+// Florian Crafter - March 2021 - Version 1.0a
 
 // Command: !ban <user | userId> <time> <reason?>
 // Command: !revokeBan <userId>
