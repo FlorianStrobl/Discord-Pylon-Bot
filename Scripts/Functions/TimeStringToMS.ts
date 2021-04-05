@@ -42,9 +42,13 @@ const timeUnitsAlliases = {
   cen: ['cent(s)', 'century', 'centuries']
 };
 
-export function CustomTimeStringToMS(time: string): number | undefined {
-  time = time.split(' ').join('');
-  time = time.toLowerCase();
+export function CustomTimeStringToMS(time?: string): number | undefined {
+  if (time === undefined) return;
+
+  time = time
+    .split(' ')
+    .join('')
+    .toLowerCase();
 
   for (const key in timeUnitsAlliases) {
     let finalTime: number | undefined;
