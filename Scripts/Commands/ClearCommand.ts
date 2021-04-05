@@ -1,4 +1,4 @@
-// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.3
+// Florian Crafter - Clash Crafter#7370 - March 2021 - Version 1.4
 
 // Save the last 350 messages (it's about 350) from a channel and delete them with !clear n. The code DOESN'T save the messages from Pylon itself so these can't be deleted :(
 // To delete the messages of the bot itself, you can use my SendMessage() function, which saves the ids of the bot ids too
@@ -50,6 +50,10 @@ discord.on(discord.Event.MESSAGE_DELETE, async (message) => {
   if (messages.length !== 0)
     await KV.put(`messages-${message.channelId}`, messages);
   else await KV.delete(`messages-${message.channelId}`);
+});
+
+discord.on(discord.Event.CHANNEL_DELETE, async (channel) => {
+  await Database.DeleteData(`messages-${channel.id}`, 'clear');
 });
 
 async function DeleteClearMessages(
