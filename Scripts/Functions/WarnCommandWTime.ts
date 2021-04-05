@@ -34,10 +34,12 @@ commands.on(
     userId: args.string()
   }),
   async (message, { userId }) => {
+    let result: boolean = false;
     try {
       discord.getGuild().then(async (guild) => {
         await guild.deleteBan(userId);
       });
+      result = true;
     } catch (error) {
       await message?.reply(
         `The user itself couldn't get unbanned. Error ${error}`
@@ -49,7 +51,7 @@ commands.on(
         | { userId: string; duration: number }[]
         | undefined = await getBans();
 
-      if (bans === undefined) {
+      if (bans === undefined && result === false) {
         await message?.reply(`There are currently no bans saved.`);
         return;
       }
