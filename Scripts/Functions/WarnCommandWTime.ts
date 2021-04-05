@@ -23,11 +23,6 @@ const adminRolesOrUser: string[] = [];
 const logChannel: string = '';
 const maxTime: number = 1000 * 60 * 60 * 24 * 365 * 2;
 
-commands.raw('t', async (m) => {
-  await m.delete();
-  console.log(await banKv.items());
-});
-
 commands.on(
   { name: 'revokeBan', filters: discord.command.filters.canBanMembers() },
   (args) => ({
