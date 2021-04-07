@@ -1,4 +1,4 @@
-// Florian Crafter - March 2021 - Version 1.0
+// Florian Crafter - March 2021 - Version 1.0a
 
 // CustomTimeStringToMS("5 min");
 // CustomTimeStringToMS("5min");
@@ -125,15 +125,11 @@ function TimeCalculator(
   }
 
   const times: string[] = time.split(':');
-  if (
-    times.length !== 2 ||
-    isNaN(Number.parseInt(times[0])!) ||
-    isNaN(Number.parseInt(times[1])!)
-  )
-    return;
 
-  const firstTime: number = Number.parseInt(times[0]);
-  let secondTime: number = Number.parseInt(times[1]);
+  const firstTime: number = Number.parseInt(times[0]!);
+  let secondTime: number = Number.parseInt(times[1]!);
+
+  if (times.length !== 2 || isNaN(firstTime) || isNaN(secondTime)) return;
 
   if (times[1].toString().length < 2) secondTime *= 10;
   else
