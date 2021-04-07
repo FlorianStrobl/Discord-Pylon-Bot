@@ -1,4 +1,4 @@
-// Florian Crafter - March 2021 - Version 1.0a
+// Florian Crafter - March 2021 - Version 1.0b
 
 // CustomTimeStringToMS("5 min");
 // CustomTimeStringToMS("5min");
@@ -112,7 +112,6 @@ function TimeCalculator(
             '8',
             '9',
             '.',
-            ',',
             ':'
           ].includes(s)
       )
