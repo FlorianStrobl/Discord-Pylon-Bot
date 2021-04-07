@@ -127,8 +127,8 @@ function TimeCalculator(
   const times: string[] = time.split(':');
   if (
     times.length !== 2 ||
-    isNaN(Number.parseInt(times[0])) ||
-    isNaN(Number.parseInt(times[1]))
+    isNaN(Number.parseInt(times[0])!) ||
+    isNaN(Number.parseInt(times[1])!)
   )
     return;
 
