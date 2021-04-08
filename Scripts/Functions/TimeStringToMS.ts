@@ -95,28 +95,7 @@ function TimeCalculator(
     | 'dec'
     | 'cen'
 ): number | undefined {
-  if (
-    time
-      .split('')
-      .some(
-        (s) =>
-          ![
-            '0',
-            '1',
-            '2',
-            '3',
-            '4',
-            '5',
-            '6',
-            '7',
-            '8',
-            '9',
-            '.',
-            ':'
-          ].includes(s)
-      )
-  )
-    return;
+  if (time.split("").some((s) => !/[0-9.,:]/g.test(s))) return;
 
   if (!time.includes(':')) {
     if (isNaN(Number.parseFloat(time))) return;
