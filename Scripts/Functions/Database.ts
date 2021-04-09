@@ -1,12 +1,14 @@
-// Florian Crafter - 02.2021 - Version 1.7a
-// Question about or need help for the code? Read the docs and look at the examples and at last DM me on Discord (Clash Crafter#7370).
+// Florian Crafter - 02-04.2021 - Version 1.8
+// Question about or need help for the code? Read the docs and look at the examples and at last DM me on Discord (ClashCrafter#0001).
 
 // READ AT LEAST THE CAPSLOCK LINES (like "HOW TO USE IT") & EDIT THE LINES WITH // EDIT AT THE END
 
 /*
  * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
  * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
+ *
  * See an example code on: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/DatabaseExamples.ts".
+ * Second example with !warn <user> <reason> "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/WarnCommandWDatabase.ts".
  * You want a undocumented version? Here: "https://gist.github.com/FlorianStrobl/219c6c0af240a2a576b28b7aebb744e8"!
  *
  * Store objects in Pylon now easily with these functions. The functions try to utilise every single byte
@@ -18,7 +20,6 @@
  * You can specify the namespace for every object yourself. This will improve the speed noticeably. If you don't specify one in the function, you'll use the main namespace (defined in the *defaultNamespace* variable). That means that if you GetAllData()
  * and you don't specify a namespace, you'll only get the data from the default namespace!
  *
- * I take no responsibilys if there is a bug and you loose data (shouldn't happen if you do everything that is in the docs).
  *
  * HOW TO USE IT: I would recommend you to follow my steps exactly like I say:
  * - Read this whole comment (or at least the capslock lines)
@@ -27,11 +28,15 @@
  * - search for "EDIT" with CTRL+F and edit there the lines to your values
  * - At the top of all files were you need the database write: "import * as Database from './database';".
  *   (The last string here is the folder directory. If your database is in a folder, write './FOLDER/database'
- *   and if your file is in a folder but the database not do '../database')
+ *   and if your file is in a folder, but the database not, do '../database')
  * - Now you can use your 10 Functions and the KV directly with the keyword Database
  *   (for example: await Database.GetAllData(); )
- * PS: I would recommend NOT to use KV Namespaces which you use with the functions to prevent errors.
- * PPS: write undefined if you dont't need a special namespace or let it empty
+ * PS: I would recommend NOT to use KV Namespaces which you already used to use to prevent any errors.
+ * PPS: write undefined if you dont't need a special namespace or let it empty.
+ * PPPS: WHY IS IT READ UNERLINED?? Probably because it thinks you give it stuff with wrong *types*: how do I fix this?
+ *  use the *as* keyword! E.g. SaveData( {index: "i", data: "d"} as any ). This way you say TypeScript that you don't make an error.
+ *  This is true for the return values of the functions too. Example for that: if ( (DeleteData("index") as boolean) === false ) return;
+ *  In this case you know that it won't be an boolean array since you only give it one string (and not an string array). With the *as* you tell TypeScript that.
  *
  * A quick overview of the functions:
  *
@@ -46,21 +51,21 @@
  * DuplicateData("index/id", "index/id", function?, "namespace"?); // duplicates the object and optinally change values from it
  * ResetDatabase(true, "namespace"?); Promise<boolean> // deletes THE ENTIRE DATA
  *
- * Yes, the UpdateDataValues() function is just a cleaner version of doing it manually with GetData() and SaveData().
+ * The UpdateDataValues() function is just a cleaner/faster way of doing manually GetData(), edit the data and SaveData().
  *
  * Some functions return a bool which let you know if the task was succesfully done (e.g. if UpdateDataValues() returns false, it hasn't updated anything).
  *
- * DO NOT LOOP OVER SaveData(), DeleteData() and UpdateDataValues() (at least not more then 10 times)
+ * DO NOT LOOP OVER SaveData(), DeleteData() or UpdateDataValues() (at least not more then 10 times)
  * because you can hit the 100ms limit of Pylons CPU Time and LOOSE SOME DATA.
  *
- * The actuall keys used in the KV Namespace are (for debuging important): "databaseKeySize" and "database_${databaseKeySize}"
+ * The actuall keys used in the KV Namespace are (for debuging important): "databaseKeySize" and "database_${databaseKeySizes}"
  *
  * Benchmarks (from version 1.3 => there were no different namespaces back then so results may differ to new versions):
  * The Benchmarks were made with an empty database at the beginning and with 1500 bytes objects (if not specified else).
  * I took all the tests at least 5 times and yes, some results are pretty astonish but they are all true!
  * Lines with " scale with the amount of keys and amount of objects in them
  * Lines with ' scale with the size of the objects in bytes
- * TIMES DO NOT SCALE LINEARLY ALL THE TIME!
+ * TIMES DO NOT SCALE EVERYWERE LINEARLY!
  *
  *                                 SaveData()
  * "' Average SaveData() time for new data (one object):                              ~30ms
@@ -92,11 +97,14 @@
  *
  * Conclusion to the benchmarks:
  * GetIndex(), GetData() and even GetAllIndexes(), GetAllData() are REALLY fast (like 50ms for 50kb data) and can be improved greatly with use of different namespaces.
- * Saving and deleting data needs much more time. And all the other functions are just combination of these functions.
+ * Saving and deleting data needs much more time.
+ * The other functions are just the combined time of these two fundamental functions.
  *
+ * I take no responsibilys if there is a bug and you loose data (shouldn't happen tho if you use it correctly).
  */
 
 // structure of the data // EDIT
+// this is the main reason why you have a red underlined code. Use `as any` to fix them (example for that is on line 37 ^).
 export interface DataStructure extends pylon.JsonObject {
   index: string | number; // the index / id of your data. Every object has to have this or else you can't use it here
   // you can do here what ever you want as long it can be saved in the JSON format.
@@ -106,10 +114,10 @@ export interface DataStructure extends pylon.JsonObject {
 // index name of the objects/interface. has to be the same as the index name of *DataStructure*
 const indexName: string = 'index'; // EDIT
 
-// this namespace will be used if not specified else.
+// this namespace will be used, if you don't specify a namespace
 const defaultNamespace: string = 'database'; // EDIT
 
-// pylons byte limit per key. you shoudn't change it, only if you bought BYOP and have now bigger limits to size per key.
+// pylons byte limit per KV key. you shoudn't change it. If you bought BYOB and have bigger byte limits, change the value here.
 const maxByteSize: number = 8196;
 
 export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
@@ -120,23 +128,21 @@ export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
 export async function SaveData(
   data: DataStructure | DataStructure[],
   namespace?: string
-): Promise<boolean> {
+): Promise<boolean | boolean[]> {
   // Index is already in database => update object.
   // Index isn't in the database => save as new object.
 
   // If it is an array, do all the task and return if every single one of them, was succesfully done. TODO return the array if you need to know wich one worked and which one failed.
   if (Array.isArray(data)) {
     let workedForAll: boolean[] = [];
-    for (let i: number = 0; i < data.length; ++i)
-      workedForAll.push(await SaveData(data[i], namespace));
-    return !workedForAll.includes(false);
+    for await (const d of data)
+      workedForAll.push((await SaveData(d, namespace)) as boolean);
+    //return !workedForAll.includes(false);
+    return workedForAll;
   }
 
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
 
   // objects over 8196 bytes and/or without an index are not supported
   if (
@@ -146,7 +152,7 @@ export async function SaveData(
   )
     return false;
 
-  let size: number = await GetDatabaseKeySize(KV.namespace);
+  let size: number = (await GetDatabaseKeySize(KV.namespace)) as number;
   let savedData: DataStructure[];
 
   // check if index is already in some key and change the object. return true if so
@@ -199,24 +205,21 @@ export async function SaveData(
 export async function DeleteData(
   index: string | number | string[] | number[],
   namespace?: string
-): Promise<boolean> {
+): Promise<boolean | boolean[]> {
   // If index isn't in the database => return false.
 
-  // If it is an array, do all the task and return if every single one of them, was succesfully done. TODO return the array if you need to know wich one worked and which one failed.
+  // If it is an array, do all the task and return if every single one of them, was succesfully done.
   if (Array.isArray(index)) {
     let workedForAll: boolean[] = [];
-    for (let i: number = 0; i < index.length; ++i)
-      workedForAll.push(await DeleteData(index[i], namespace));
-    return !workedForAll.includes(false);
+    for await (const i of index)
+      workedForAll.push((await DeleteData(i, namespace)) as boolean);
+    //return !workedForAll.includes(false);
+    return workedForAll;
   }
 
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
-
-  const size: number = await GetDatabaseKeySize(KV.namespace);
+  const KV: pylon.KVNamespace = await GetKV(namespace);
+  const size: number = (await GetDatabaseKeySize(KV.namespace)) as number;
 
   // go through every key and search for the index
   for (let i: number = 0; i <= size; ++i) {
@@ -232,7 +235,8 @@ export async function DeleteData(
     if (indexData !== -1) {
       data.splice(indexData, 1); // found object and deleting it localy
       await KV.put(`database_${i}`, data); // update kv
-      if (data.length === 0) await DatabaseKeyOrder(KV.namespace); // keys are sorted because one key is now empty
+      if (data.length === 0) await DatabaseKeyOrder(KV.namespace); // keys are sorted because one of the keys is now empty
+
       return true;
     }
   }
@@ -249,29 +253,25 @@ export async function GetData(
   // If it is an array, do all the task and return if every single one of them, was succesfully done. TODO return the array if you need to know wich one worked and which one failed.
   if (Array.isArray(index)) {
     let data: (DataStructure | undefined)[] = [];
-    for (let i: number = 0; i < index.length; ++i)
-      // This won't return a (DataStructure | undefined)[] because you give it only a single string/number.
-      data.push(
-        (await GetData(index[i], namespace)) as DataStructure | undefined
-      );
+    // This won't return a (DataStructure | undefined)[] because you give it only a single string/number.
+    for await (const i of index)
+      data.push((await GetData(i, namespace)) as DataStructure | undefined);
+
     return data;
   }
 
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
+  const size: number = (await GetDatabaseKeySize(KV.namespace)) as number;
 
-  const size: number = await GetDatabaseKeySize(KV.namespace);
   let data: DataStructure | undefined;
-
-  // it is more optimized to go manualy trow the data, then just doing GetAllData() and searching there
+  // it is more optimized to go manually through the data, than just doing GetAllData() and searching there
   for (let i: number = 0; i <= size; ++i) {
     // search for index in the database and return the data if it finds something
     data = ((await KV.get<DataStructure[]>(`database_${i}`)) ?? []).find(
       (d) => d[indexName]?.toString() === index.toString()
     );
+
     if (data !== undefined) return data;
   }
 
@@ -282,66 +282,67 @@ export async function GetData(
 export async function GetAllData(
   namespace?: string,
   filter?: (data: DataStructure) => boolean
-): Promise<DataStructure[] | undefined> {
+): Promise<DataStructure[]> {
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
+  const size: number = (await GetDatabaseKeySize(KV.namespace)) as number;
 
-  const size: number = await GetDatabaseKeySize(KV.namespace);
   let data: DataStructure[] = [];
-
   // get every key and save the data in a local array
   for (let i: number = 0; i <= size; ++i)
     data = data.concat((await KV.get<DataStructure[]>(`database_${i}`)) ?? []);
 
   if (filter !== undefined) {
     let filteredData: DataStructure[] = [];
-
     // use all the data and search now the data with the given properties
-    for (let i = 0; i < data.length; ++i)
+    for await (const d of data)
       try {
-        if (filter(data[i])) filteredData.push(data[i]);
+        if (filter(d) === true) filteredData.push(d);
       } catch (_) {}
 
     data = filteredData;
   }
 
   // return objects
-  if (data.length === 0) return undefined;
+  if (data.length === 0) return [];
   else return data;
 }
 
 export async function UpdateDataValues(
-  index: string | number,
-  newData: (data: DataStructure) => DataStructure,
+  index: string | number | string[] | number[],
+  editData: (data: DataStructure) => DataStructure,
   namespace?: string
-): Promise<boolean> {
+): Promise<boolean | boolean[]> {
   // If index doesn't exist => does nothing and returns false
   // If new object is larger then max byte size or index was changed => does nothing and return false.
 
+  if (Array.isArray(index)) {
+    let workedForAll: boolean[] = [];
+    for await (const i of index)
+      workedForAll.push(
+        (await UpdateDataValues(i, editData, namespace)) as boolean
+      );
+    //return !workedForAll.includes(false);
+    return workedForAll;
+  }
+
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
 
   // try get current data
-  // it won't return a array
   let data: DataStructure | undefined = (await GetData(index, KV.namespace)) as
     | DataStructure
     | undefined;
   if (data === undefined) return false;
 
-  const updatedData: DataStructure = await newData(data); // updated object localy
+  const updatedData: DataStructure = await editData(data); // updated object locally
   if (
     updatedData[indexName] !== data[indexName] ||
     (await GetSize(updatedData)) > maxByteSize
   )
-    return false; // id was changed and/or object is too big
+    return false; // index was changed and/or object is too big now
 
-  return await SaveData(updatedData, KV.namespace); // updated object
+  return (await SaveData(updatedData, KV.namespace)) as boolean; // updated object
 }
 
 // duplicate existing data, and you can optionally modify it before
@@ -352,10 +353,7 @@ export async function DuplicateData(
   dataEdit?: (data: DataStructure) => DataStructure
 ): Promise<boolean> {
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
 
   // it won't return a array
   let data: DataStructure | undefined = (await GetData(
@@ -372,9 +370,9 @@ export async function DuplicateData(
 
   data[indexName] = newIndex; // change index of new data
 
-  if (dataEdit !== undefined) data = await dataEdit(data); // change the data if wanted
+  if (dataEdit !== undefined) data = await dataEdit(data); // edit the data if wanted
 
-  return await SaveData(data, KV.namespace); // save the new data
+  return (await SaveData(data, KV.namespace)) as boolean; // save the new data
 }
 
 // check if an index exists
@@ -383,12 +381,15 @@ export async function IndexExist(
   namespace?: string
 ): Promise<boolean | boolean[]> {
   if (Array.isArray(index)) {
-    // it is an array
+    // saves the result for each data
     let exists: boolean[] = [];
-    for (let i: number = 0; i < index.length; ++i)
-      exists.push((await GetData(index[i], namespace)) !== undefined);
+    for await (const i of index)
+      exists.push((await GetData(i, namespace)) !== undefined);
     return exists;
-  } else return (await GetData(index, namespace)) !== undefined; // not an array so just simply do that
+  }
+
+  // not an array so just simply do that
+  return (await GetData(index, namespace)) !== undefined;
 }
 
 export async function ChangeIndex(
@@ -399,16 +400,14 @@ export async function ChangeIndex(
   // change the index of an existing object
 
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
 
-  // it won't return a array
+  // get the current data
   let data: DataStructure | undefined = (await GetData(
     oldIndex,
     KV.namespace
   )) as DataStructure | undefined;
+
   if (
     data === undefined ||
     (await GetData(newIndex, KV.namespace)) !== undefined
@@ -417,10 +416,15 @@ export async function ChangeIndex(
 
   data[indexName] = newIndex; // change index
 
-  return (
-    (await DeleteData(oldIndex, KV.namespace)) &&
-    (await SaveData(data, KV.namespace))
-  ); // delete old object and save new one
+  // deletes the old data
+  const deleteDataRes: boolean = (await DeleteData(
+    oldIndex,
+    KV.namespace
+  )) as boolean;
+  // the new data with the new index
+  const saveDataRes: boolean = (await SaveData(data, KV.namespace)) as boolean;
+
+  return deleteDataRes && saveDataRes; // delete old object and save new one
 }
 
 export async function AllIndexes(
@@ -428,10 +432,7 @@ export async function AllIndexes(
   filter?: (data: DataStructure) => boolean
 ): Promise<string[]> {
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
 
   const data: DataStructure[] | undefined = await GetAllData(
     KV.namespace,
@@ -440,39 +441,27 @@ export async function AllIndexes(
 
   if (data === undefined) return []; // no data is saved
 
-  let indexes: string[] = [];
-
-  // this will be no problem, since you can't save data without an index so you know that this works
-  for await (let d of data) indexes.push(d[indexName]! as string);
-
-  return indexes;
+  // just return all the index names
+  return data.map((d) => d[indexName]!) as string[];
 }
 
 export async function ResetDatabase(
   clearTheNamespace: boolean,
   namespace?: string
 ): Promise<boolean> {
-  // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
-
-  if (clearTheNamespace === true) await KV.clear();
+  if (clearTheNamespace === true) await (await GetKV(namespace)).clear();
   return clearTheNamespace;
 }
 
 // correct empty keys
 async function DatabaseKeyOrder(namespace: string): Promise<boolean> {
   // get the KV
-  let KV: pylon.KVNamespace;
-  if (namespace !== undefined && namespace !== null)
-    KV = new pylon.KVNamespace(namespace);
-  else KV = Default_KV;
+  const KV: pylon.KVNamespace = await GetKV(namespace);
 
   let size: number =
-    (await new pylon.KVNamespace(namespace).get<number>(`databaseKeySize`)) ??
-    -1;
+    ((await GetDatabaseKeySize(namespace)) as number) === 0
+      ? -1
+      : ((await GetDatabaseKeySize(namespace)) as number);
 
   for (let i: number = 0; i <= size; ++i) {
     let data: DataStructure[] | undefined = await KV.get<DataStructure[]>(
@@ -481,13 +470,12 @@ async function DatabaseKeyOrder(namespace: string): Promise<boolean> {
 
     if (data === undefined || data.length === 0) {
       // current key is empty
-      for (let y: number = i; y < size; ++y) {
+      for (let y: number = i; y < size; ++y)
         // puts data from key x+1 in key x
         await KV.put(
           `database_${y}`,
           (await KV.get<DataStructure[]>(`database_${y + 1}`)) ?? []
         );
-      }
 
       await KV.delete(`database_${size}`); // deletes empty key which is now the last one
       // In theory one more key if database is empty, but doesn't work right now. TODO
@@ -508,9 +496,15 @@ async function DatabaseKeyOrder(namespace: string): Promise<boolean> {
   return false; // changed nothing
 }
 
+const GetKV = async (namespace?: string) => {
+  if (namespace !== undefined && namespace !== null)
+    return new pylon.KVNamespace(namespace);
+  else return Default_KV;
+};
+
 // get number of keys in KV
 const GetDatabaseKeySize = async (namespace: string) =>
-  (await new pylon.KVNamespace(namespace).get<number>(`databaseKeySize`)) ?? 0;
+  (await GetKV(namespace)).get<number>(`databaseKeySize`) ?? 0;
 
 // get the size in bytes of an object saved as JSON
 const GetSize = async (data: any) => JSON.stringify(data).length;
