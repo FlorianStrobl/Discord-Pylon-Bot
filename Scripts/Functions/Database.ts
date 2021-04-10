@@ -1,7 +1,7 @@
 // Florian Crafter - 02-04.2021 - Version 1.8
 // Question about or need help for the code? Read the docs and look at the examples and at last DM me on Discord (ClashCrafter#0001).
 
-// READ AT LEAST THE CAPSLOCK LINES (like "HOW TO USE IT") & EDIT THE LINES WITH // EDIT AT THE END
+// READ AT LEAST THE CAPSLOCK LINES (like "HOW TO USE IT") & EDIT THE LINES WITH "// EDIT" AT THE END
 
 /*
  * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
