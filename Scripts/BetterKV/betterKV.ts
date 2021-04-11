@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.0
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Database/BetterKV Version 2.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks" and "Example" are at the end of the file (search for "Docs")
 
