@@ -4,7 +4,7 @@
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
 
 // Versions >=2.0 are NOT compatible with versions <=1.8! If you want to migrate to this new system, read the "How to use it" text at the end of this file.
-// Check for updates under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
+// Check for updates under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/BetterKV/betterKV.ts".
 // Disclaimer: I take no responsibilys if there is a bug and you loose data (shouldn't happen tho if you use it correctly).
 
 // this namespace will be used, if you don't specify a namespace
@@ -526,8 +526,9 @@ async function filterObjValues(
 
 /* Test if everything works:
  * Use the command !Test (yes it is this prefix)
- new discord.command.CommandGroup().raw('Test', async (m) => {
   
+ import * as BetterKV from './betterKV';
+ new discord.command.CommandGroup().raw('Test', async (m) => {
   console.log(
     'Starting test!',
     'If control is false, or at least one of the save() test return false, the other results will be meaningless.'
@@ -842,6 +843,7 @@ async function filterObjValues(
 
   console.log('Duration', Date.now() - startTime + 'ms');
 
+  await BetterKV.clear(true, 'test ns');
  });
  */
 
