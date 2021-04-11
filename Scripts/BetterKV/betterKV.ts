@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.1.2
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.1.3
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -128,7 +128,9 @@ export async function transact(
     // array so just do this function recursively
     let workedForAll: boolean[] = [];
     for await (const k of key)
-      workedForAll.push((await transact(k, edit, namespace)) as boolean);
+      workedForAll.push(
+        (await transact(k, edit, namespace, replaceUndefined)) as boolean
+      );
     return workedForAll;
     //return !workedForAll.includes(false);
   }
@@ -582,7 +584,7 @@ async function filterObjValues(
  * Use the command !Test (yes it is this prefix)
   
  import * as BetterKV from './betterKV';
- new discord.command.CommandGroup().raw('Test', async (m) => {
+ new discord.command.CommandGroup().raw('TestBKV', async (m) => {
   console.log(
     'Starting test!',
     'If control is false, or at least one of the save() test return false, the other results will be meaningless.'
@@ -646,21 +648,36 @@ async function filterObjValues(
 
   console.log(
     'TEST transact() 1:',
-    (await BetterKV.transact('not existing key', (x) => x, 'test ns')) === false
+    (await BetterKV.transact(
+      'not existing key',
+      (x) => x as any,
+      'test ns',
+      false
+    )) === false
   );
   console.log(
     'TEST transact() 2:',
-    await BetterKV.transact('a key', (x) => x + '.', 'test ns')
+    await BetterKV.transact(
+      'not existing key',
+      (x) => 'a value',
+      'test ns',
+      true
+    )
+  );
+  console.log(
+    'TEST transact() 3:',
+    await BetterKV.transact('a key', (x) => x + '.', 'test ns', true)
   );
   results = (await BetterKV.transact(
     ['a key', 'a second key'],
     (x) => x + ',',
-    'test ns'
+    'test ns',
+    true
   )) as boolean[];
-  console.log('TEST transact() 3:', results[0] && results[1]);
+  console.log('TEST transact() 4:', results[0] && results[1]);
   console.log(
-    'TEST transact() 4:',
-    await BetterKV.transact('a key', (x) => '.'.repeat(8000), 'test ns')
+    'TEST transact() 5:',
+    await BetterKV.transact('a key', (x) => '.'.repeat(8000), 'test ns', true)
   );
   // #endregion
 
