@@ -521,7 +521,39 @@ async function filterObjValues(
  */
 
 /* Benchmarks:
- * Didn't have the time to do them yet.
+ * Test
+ let time = Date.now();
+  await BetterKV.clear(true);
+  console.log('clear', Date.now() - time + 'ms');
+  await BetterKV.save('key 1', '.'.repeat(8000));
+  await BetterKV.save('key 2', '.'.repeat(8000));
+  await BetterKV.save('key 3', '.'.repeat(8000));
+  await BetterKV.save('key 4', '.'.repeat(8000));
+  await BetterKV.save('key 5', '.'.repeat(8000));
+  console.log('save', Date.now() - time + 'ms');
+  time = Date.now();
+  await BetterKV.get(['key 1', 'key 2', 'key 3', 'key 4', 'key 5']);
+  console.log('get', Date.now() - time + 'ms');
+  time = Date.now();
+  await BetterKV.getAllKeys(undefined, (x) => x);
+  await BetterKV.getAllValues(undefined, (x) => x);
+  await BetterKV.count();
+  await BetterKV.getRawData();
+  console.log('get all', Date.now() - time + 'ms');
+  time = Date.now();
+  await BetterKV.del(['key 1', 'key 2', 'key 3', 'key 4', 'key 5']);
+  console.log('del', Date.now() - time + 'ms');
+  time = Date.now();
+  await BetterKV.clear(true);
+  console.log('clear', Date.now() - time + 'ms');
+
+ * Output: 
+ * clear ~8ms
+ * save ~310ms
+ * get ~140ms
+ * get all ~180ms
+ * del ~600ms
+ * clear ~8ms
  */
 
 /* Test if everything works:
