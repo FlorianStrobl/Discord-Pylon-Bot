@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.0a
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.1.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -115,7 +115,7 @@ export async function save(
 // modify values on the fly
 export async function transact(
   key: string | number | (string | number)[],
-  edit: (value: any) => pylon.Json,
+  edit: (value: pylon.Json | undefined) => pylon.Json,
   namespace?: string
 ): Promise<boolean | boolean[]> {
   if (Array.isArray(key)) {
@@ -132,13 +132,20 @@ export async function transact(
   const KV: pylon.KVNamespace = await getKV(namespace);
 
   // try get current data
-  const oldValue: pylon.Json | undefined = (await get(key, KV.namespace)) as
-    | pylon.Json
-    | undefined;
+  const oldValue: pylon.Json | undefined = await get<pylon.Json>(
+    key,
+    KV.namespace
+  );
 
-  if (oldValue === undefined) return false;
+  let newValue: pylon.Json;
 
-  const newValue: pylon.Json = await edit(oldValue); // updated data locally
+  try {
+    newValue = await edit(oldValue); // updated data locally
+  } catch (_) {
+    return false;
+  }
+
+  if (newValue === undefined) return false;
 
   // object is too big
   if ((await getSize(newValue)) > maxByteSize) return false;
@@ -505,7 +512,7 @@ async function filterObjValues(
  * The functions are:
  *
  * save(key: string | number, value: pylon.Json, namespace?: string, ifNotExist?: boolean): Promise<boolean>;
- * transact(key: string | number | (string | number)[], edit: (value: any) => pylon.Json, namespace?: string): Promise<boolean | boolean[]>;
+ * transact(key: string | number | (string | number)[], edit: (value: pylon.Json | undefined) => pylon.Json, namespace?: string): Promise<boolean | boolean[]>;
  * duplicate(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
  * changeKey(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
  * del(key: string | number | (string | number)[], namespace?: string): Promise<boolean | boolean[]>;
