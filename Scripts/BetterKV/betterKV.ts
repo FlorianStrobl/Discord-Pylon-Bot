@@ -5,6 +5,8 @@
 
 // Versions >=2.0 are NOT compatible with versions <=1.8! If you want to migrate to this new system, read the "How to use it" text at the end of this file.
 // Check for updates under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/BetterKV/betterKV.ts".
+// Check for examples under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/BetterKV"
+// If the message still exists: "https://discord.com/channels/530557949098065930/695065184615792710/830868249087574016", here some more explanations
 // Disclaimer: I take no responsibilys if there is a bug and you loose data (shouldn't happen tho if you use it correctly).
 
 // this namespace will be used, if you don't specify a namespace
@@ -442,6 +444,8 @@ async function filterObjValues(
  * Step 3:
  * Use it! Write "await BetterKV." to see what you can do,
  * and after choosing one (e.g. BetterKV.save()) hover with your mouse over the function to see which arguments the function takes!
+ * If it is red, you have some wrong input or just write (yourInput as any) to remove the red lines.
+ * Same with the output (await theFunction as any) to remove red lines
  *
  * Step 4:
  * If you have already used my old database scripts (scripts with version 1.8 or older), you can convert your existing database to the new one!
@@ -455,6 +459,9 @@ async function filterObjValues(
  * This way, you can code more easily! And it makes the whole database faster! That means you can access faster values from namespaces with only a few values,
  * than access values from namespaces with much data.
  * DON'T use namespaces which you use outside of the db tho!
+ *
+ * DON'Ts:
+ * Looping over any function.
  */
 
 /* Explanation:
