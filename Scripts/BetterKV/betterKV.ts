@@ -1,6 +1,6 @@
 // Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.0
 
-// "How to use it", "Explanation", "Documentation", "Benchmarks" and "Examples" are at the end of the file (search for "Docs")
+// "How to use it", "Explanation", "Documentation", "Benchmarks" and "Example" are at the end of the file (search for "Docs")
 
 // Versions >=2.0 are NOT compatible with versions <=1.8! If you want to migrate to this new system, read the "How to use it" text at the end of this file.
 // Check for updates under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
@@ -17,13 +17,13 @@ export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
 ); // This is the default namespace.
 
 // #region compatibility functions
-async function ConvertOldDBToNewDB(
+export async function ConvertOldDBToNewDB(
   namespace?: string | string[]
 ): Promise<boolean | boolean[]> {
   return true;
 }
 
-async function ConvertDBToNativeKV(
+export async function ConvertDBToNativeKV(
   namespace?: string | string[]
 ): Promise<boolean | boolean[]> {
   if (Array.isArray(namespace)) {
@@ -302,8 +302,8 @@ export async function getAllValues<T extends pylon.Json>(
       if (filter((rawData as any)[key] === false)) delete (rawData as any)[key];
 
   // return objects
-  if (Object.keys(rawData).length === 0) return [];
-  else return Object.values(rawData);
+  if (Object.keys(rawData).length === 0) return [] as any;
+  else return Object.values(rawData) as any;
 }
 
 // getting all the keys
@@ -430,12 +430,12 @@ async function objArrToObj(objectArray: object[]): Promise<object> {
 //#region Docs
 /* How to use it:
  * Step 1:
- * First of all you have to copy this file. Create a new file called e.g. betterKV.ts and copy/paste this code.
+ * First, you have to copy this file. Create a new file called e.g. betterKV.ts and copy/paste this code.
  *
  * Step 2:
  * To use the better KV, you have to import the functions:
- * You go in the file, were you want the database and write: import * as betterKV from './betterKV';
- * If your relativ path is not './betterKV', do './FOLDER_NAME/betterKV' or '../FOLDER_NAME/betterKV'
+ * You go in the file, where you want the database and write: import * as betterKV from './betterKV';
+ * If your relative path is not './betterKV', do './FOLDER_NAME/betterKV' or '../FOLDER_NAME/betterKV'
  *
  * Step 3:
  * Use it! Write "await BetterKV." to see what you can do,
@@ -448,6 +448,10 @@ async function objArrToObj(objectArray: object[]): Promise<object> {
  * Step 5:
  * If you want to go back to the normal KV system, use the ConvertDBToNativeKV() function.
  * Again, I recommend you to do this namespace per namespace and not all at once!
+ *
+ * What are the namespaces? If you use getAllValues("my user namespace") for example, you will only get the values for this namespace!
+ * This way, you can code more easily! And it makes the whole database faster! That means you can access faster values from namespaces with only a few values,
+ * than access values from namespaces with much data.
  */
 
 /* Explanation:
@@ -509,14 +513,60 @@ async function objArrToObj(objectArray: object[]): Promise<object> {
  * Most of the functions return a boolen to show you if they did their job successful:
  * If everything was successful, it returns true, if something got wrong (couldn't delete some keys+values for example) it returns false.
  * You should check if it returns false, and if so, handle the problem.
+ *
+ * Every namespace needs a "databaseKeySize" key so that the functions can work properly. You should nevertheless use a new namespace for each new action.
  */
 
 /* Benchmarks:
  * Didn't have the time to do them yet.
  */
 
-/* Examples:
- *
- *
- */
+/*Example:
+// thats how it should look like: "https://media.discordapp.net/attachments/691250517820571649/830824466916573204/unknown.png"
+
+// !save <key> <value>
+new discord.command.CommandGroup().on(
+  { name: 'save' },
+  (args) => ({ key: args.string(), value: args.text() }),
+  async (message, { key, value }) => {
+    await BetterKV.save(key, value, 'user namespace');
+    await message.reply(
+      `You saved ${'`' + value + '`'} in the key ${'`' + key + '`'}.`
+    );
+  }
+);
+
+// !get <key>
+new discord.command.CommandGroup().on(
+  { name: 'get' },
+  (args) => ({ key: args.string() }),
+  async (message, { key }) => {
+    const value: string | undefined = await BetterKV.get<string>(
+      key,
+      'user namespace'
+    );
+
+    if (value === undefined)
+      await message.reply(
+        `The key ${'`' + key + '`'} has no value associated to it!`
+      );
+    else
+      await message.reply(
+        `${'`' + value + '`'} was saved in the key ${'`' + key + '`'}.`
+      );
+  }
+);
+
+// !reset
+new discord.command.CommandGroup().raw({ name: 'reset' }, async (message) => {
+  if (!message.member.can(discord.Permissions.ADMINISTRATOR))
+    return await message.reply(
+      `You don't have the permission for that command!`
+    );
+
+  await BetterKV.clear(true, 'user namespace');
+
+  await message.reply(`Reseted the KV.`);
+});
+*/
 // #endregion
