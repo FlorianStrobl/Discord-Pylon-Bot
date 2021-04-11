@@ -1,13 +1,13 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Database/BetterKV Version 2.0
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.0
 
-// "How to use it", "Explanation", "Documentation", "Benchmarks" and "Example" are at the end of the file (search for "Docs")
+// "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 
 // Versions >=2.0 are NOT compatible with versions <=1.8! If you want to migrate to this new system, read the "How to use it" text at the end of this file.
 // Check for updates under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
 // Disclaimer: I take no responsibilys if there is a bug and you loose data (shouldn't happen tho if you use it correctly).
 
 // this namespace will be used, if you don't specify a namespace
-const defaultNamespace: string = 'database'; // EDIT
+const defaultNamespace: string = 'database';
 
 // pylons byte limit per KV key. you shoudn't change it!! If you bought BYOB and have higher byte limits, change the value here.
 const maxByteSize: number = 8196;
@@ -49,12 +49,17 @@ export async function save(
   ifNotExist?: boolean
 ): Promise<boolean> {
   // validate inputs
-  if ((await getSize(value)) > maxByteSize || key == null) return false;
+  if (
+    (await getSize(value)) > maxByteSize ||
+    key == null ||
+    key === 'databaseKeySize'
+  )
+    return false;
 
   key = key.toString();
 
   const KV: pylon.KVNamespace = await getKV(namespace);
-  let size: number = (await getDBKeySize(KV.namespace)) as number;
+  let size: number = await getDBKeySize(KV.namespace);
   let savedData: object;
 
   // check if key is already in some db key and change the value. return true if so
@@ -62,9 +67,9 @@ export async function save(
     savedData = ((await KV.get(`database_${i}`)) ?? {}) as object;
 
     // search data in current db key
-    const _value: pylon.Json = (savedData as any)[key];
+    const cvalue: pylon.Json = (savedData as any)[key];
 
-    if (_value !== undefined) {
+    if (cvalue !== undefined) {
       if (ifNotExist === true) return false;
 
       (savedData as any)[key] = value; // change value of existing data in local array
@@ -76,7 +81,7 @@ export async function save(
         delete (savedData as any)[key];
         await KV.put(`database_${i}`, savedData as any);
         //await dbKeyOrder(KV.namespace);
-        await save(key, _value, KV.namespace); // ~~this should be pretty rare so no real performance lost~~
+        await save(key, cvalue, KV.namespace); // ~~this should be pretty rare so no real performance lost~~
       }
 
       return true;
@@ -98,8 +103,9 @@ export async function save(
   }
 
   // no db key had space and key didn't exist yet => new db key is cerated and object saved there
-  await KV.put(`databaseKeySize`, ++size);
-  await KV.put(`database_${size}`, { key: value });
+  ++size;
+  await KV.put(`databaseKeySize`, size);
+  await KV.put(`database_${size}`, { [key]: value });
   return true;
 }
 
@@ -126,6 +132,7 @@ export async function transact(
   const oldValue: pylon.Json | undefined = (await get(key, KV.namespace)) as
     | pylon.Json
     | undefined;
+
   if (oldValue === undefined) return false;
 
   const newValue: pylon.Json = await edit(oldValue); // updated data locally
@@ -153,7 +160,11 @@ export async function duplicate(
     | undefined;
 
   // old key doesnt exist or new key is used already
-  if (value === undefined || (await get(newKey, KV.namespace)) !== undefined)
+  if (
+    value === undefined ||
+    (await get(newKey, KV.namespace)) !== undefined ||
+    newKey === 'databaseKeySize'
+  )
     return false;
 
   if (edit !== undefined) value = await edit(value); // edit the data if wanted
@@ -178,7 +189,11 @@ export async function changeKey(
     | pylon.Json
     | undefined;
 
-  if (value === undefined || (await get(newKey, KV.namespace)) !== undefined)
+  if (
+    value === undefined ||
+    (await get(newKey, KV.namespace)) !== undefined ||
+    newKey === 'databaseKeySize'
+  )
     return false; // old key doesn't exist and/or new key exists already
 
   // deletes the old key
@@ -214,7 +229,7 @@ export async function del(
   key = key.toString();
 
   const KV: pylon.KVNamespace = await getKV(namespace);
-  const size: number = (await getDBKeySize(KV.namespace)) as number;
+  const size: number = await getDBKeySize(KV.namespace);
 
   // go through every db key and search for the key
   for (let i: number = 0; i <= size; ++i) {
@@ -276,7 +291,7 @@ export async function get<T extends pylon.Json>(
 
   // get the KV
   const KV: pylon.KVNamespace = await getKV(namespace);
-  const size: number = (await getDBKeySize(KV.namespace)) as number;
+  const size: number = await getDBKeySize(KV.namespace);
 
   // it is more optimized to go manually through the keys, than just doing GetAllValues() and searching there for the data
   for (let i: number = 0; i <= size; ++i) {
@@ -295,15 +310,9 @@ export async function getAllValues<T extends pylon.Json>(
   filter?: (value: any) => boolean
 ): Promise<T> {
   let rawData: object = await getRawData(namespace);
-
-  // use all the values with the given properties
-  if (filter !== undefined)
-    for await (const key of Object.keys(rawData))
-      if (filter((rawData as any)[key] === false)) delete (rawData as any)[key];
-
-  // return objects
+  if (filter !== undefined) rawData = await filterObjValues(rawData, filter);
   if (Object.keys(rawData).length === 0) return [] as any;
-  else return Object.values(rawData) as any;
+  else return Object.values(rawData) as T;
 }
 
 // getting all the keys
@@ -312,19 +321,14 @@ export async function getAllKeys(
   filter?: (value: any) => boolean
 ): Promise<string[]> {
   let rawData: object = await getRawData(namespace);
-
-  // filter the keys
-  if (filter !== undefined)
-    for await (const key of Object.keys(rawData))
-      if (filter((rawData as any)[key]) === false) delete (rawData as any)[key];
-
+  if (filter !== undefined) rawData = await filterObjValues(rawData, filter);
   return Object.keys(rawData);
 }
 
 // getting the raw data
 export async function getRawData(namespace?: string): Promise<object> {
   const KV: pylon.KVNamespace = await getKV(namespace);
-  const size: number = (await getDBKeySize(KV.namespace)) as number;
+  const size: number = await getDBKeySize(KV.namespace);
 
   let data: object[] = [];
   for (let i: number = 0; i <= size; ++i)
@@ -366,9 +370,7 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
   const KV: pylon.KVNamespace = await getKV(namespace);
 
   let size: number =
-    (await getDBKeySize(namespace)) === 0
-      ? -1
-      : ((await getDBKeySize(namespace)) as number);
+    (await getDBKeySize(namespace)) === 0 ? -1 : await getDBKeySize(namespace);
 
   for (let i: number = 0; i <= size; ++i) {
     const data: object | undefined = (await KV.get(`database_${i}`)) as object;
@@ -409,21 +411,26 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
 
 // get number of db keys in this namespace
 async function getDBKeySize(namespace: string): Promise<number> {
-  return ((await (await getKV(namespace)).get<number>(`databaseKeySize`)) ??
-    0) as number;
+  return (await (await getKV(namespace)).get<number>(`databaseKeySize`)) ?? 0;
 }
 
 // converts an one dimensional object array to an object
 async function objArrToObj(objectArray: object[]): Promise<object> {
-  objectArray = objectArray.flat();
-
   let result: object = {};
-
   for await (const obj of objectArray)
     for await (const key of Object.keys(obj))
       (result as any)[key] = (obj as any)[key];
-
   return result;
+}
+
+async function filterObjValues(
+  obj: object,
+  filter: (value: any) => boolean
+): Promise<object> {
+  for await (const key of Object.keys(obj))
+    if (filter((obj as any)[key]) === false) delete (obj as any)[key];
+
+  return obj;
 }
 // #endregion
 
@@ -452,6 +459,7 @@ async function objArrToObj(objectArray: object[]): Promise<object> {
  * What are the namespaces? If you use getAllValues("my user namespace") for example, you will only get the values for this namespace!
  * This way, you can code more easily! And it makes the whole database faster! That means you can access faster values from namespaces with only a few values,
  * than access values from namespaces with much data.
+ * DON'T use namespaces which you use outside of the db tho!
  */
 
 /* Explanation:
@@ -494,7 +502,7 @@ async function objArrToObj(objectArray: object[]): Promise<object> {
 /* Documentation:
  * The functions are:
  *
- * save(key: string | number, value: pylon.Json, namespace?: string): Promise<boolean>;
+ * save(key: string | number, value: pylon.Json, namespace?: string, ifNotExist?: boolean): Promise<boolean>;
  * transact(key: string | number | (string | number)[], edit: (value: any) => pylon.Json, namespace?: string): Promise<boolean | boolean[]>;
  * duplicate(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
  * changeKey(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
@@ -521,11 +529,17 @@ async function objArrToObj(objectArray: object[]): Promise<object> {
  * Didn't have the time to do them yet.
  */
 
-/*Example:
-// thats how it should look like: "https://media.discordapp.net/attachments/691250517820571649/830824466916573204/unknown.png"
+/* Test if everything works:
+ * Use the command !Test (yes it is this prefix)
+ new discord.command.CommandGroup().raw('Test', async (m) => {
+  
+ });
+ */
 
-// !save <key> <value>
-new discord.command.CommandGroup().on(
+/* Example:
+ * thats how it should look like: "https://media.discordapp.net/attachments/691250517820571649/830824466916573204/unknown.png"
+ * !save <key> <value>
+ new discord.command.CommandGroup().on(
   { name: 'save' },
   (args) => ({ key: args.string(), value: args.text() }),
   async (message, { key, value }) => {
@@ -534,10 +548,10 @@ new discord.command.CommandGroup().on(
       `You saved ${'`' + value + '`'} in the key ${'`' + key + '`'}.`
     );
   }
-);
+ );
 
-// !get <key>
-new discord.command.CommandGroup().on(
+ * !get <key>
+ new discord.command.CommandGroup().on(
   { name: 'get' },
   (args) => ({ key: args.string() }),
   async (message, { key }) => {
@@ -555,10 +569,10 @@ new discord.command.CommandGroup().on(
         `${'`' + value + '`'} was saved in the key ${'`' + key + '`'}.`
       );
   }
-);
+ );
 
-// !reset
-new discord.command.CommandGroup().raw({ name: 'reset' }, async (message) => {
+ * !reset
+ new discord.command.CommandGroup().raw({ name: 'reset' }, async (message) => {
   if (!message.member.can(discord.Permissions.ADMINISTRATOR))
     return await message.reply(
       `You don't have the permission for that command!`
@@ -567,6 +581,6 @@ new discord.command.CommandGroup().raw({ name: 'reset' }, async (message) => {
   await BetterKV.clear(true, 'user namespace');
 
   await message.reply(`Reseted the KV.`);
-});
+ });
 */
 // #endregion
