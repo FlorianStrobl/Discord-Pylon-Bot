@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.1.0
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.1.1
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -116,7 +116,8 @@ export async function save(
 export async function transact(
   key: string | number | (string | number)[],
   edit: (value: pylon.Json | undefined) => pylon.Json,
-  namespace?: string
+  namespace?: string,
+  replaceUndefined?: boolean
 ): Promise<boolean | boolean[]> {
   if (Array.isArray(key)) {
     // array so just do this function recursively
@@ -137,13 +138,13 @@ export async function transact(
     KV.namespace
   );
 
-  let newValue: pylon.Json;
-
-  try {
-    newValue = await edit(oldValue); // updated data locally
-  } catch (_) {
+  if (
+    (oldValue === undefined && replaceUndefined === false) ||
+    replaceUndefined === undefined
+  )
     return false;
-  }
+
+  let newValue: pylon.Json = await edit(oldValue); // updated data locally
 
   if (newValue === undefined) return false;
 
