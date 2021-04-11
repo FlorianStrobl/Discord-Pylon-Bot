@@ -1,6 +1,7 @@
 // Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
+// ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
 
 // Versions >=2.0 are NOT compatible with versions <=1.8! If you want to migrate to this new system, read the "How to use it" text at the end of this file.
 // Check for updates under: "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
@@ -266,9 +267,6 @@ export async function exist(
     return exists;
   }
 
-  key = key.toString();
-
-  // not an array so just simply do that
   return (await get(key, namespace)) !== undefined;
 }
 
@@ -280,24 +278,20 @@ export async function get<T extends pylon.Json>(
   if (Array.isArray(key)) {
     // array so just do this function recursively
     let values: (pylon.Json | undefined)[] = [];
-    // This won't return a (DataStructure | undefined)[] because you give it only a single string/number.
-    for await (const k of key)
-      values.push((await get(k, namespace)) as pylon.Json | undefined);
-
+    for await (const k of key) values.push(await get(k, namespace));
     return values as any;
   }
 
   key = key.toString();
 
-  // get the KV
   const KV: pylon.KVNamespace = await getKV(namespace);
   const size: number = await getDBKeySize(KV.namespace);
 
   // it is more optimized to go manually through the keys, than just doing GetAllValues() and searching there for the data
   for (let i: number = 0; i <= size; ++i) {
     // search for key in the db key and return the value if it exists
-    const savedData: any = (await KV.get(`database_${i}`)) ?? {};
-    if (savedData[key] !== undefined) return savedData[key];
+    const savedData: object = ((await KV.get(`database_${i}`)) ?? {}) as object;
+    if ((savedData as any)[key] !== undefined) return (savedData as any)[key];
   }
 
   // key doesn't exist
@@ -310,8 +304,8 @@ export async function getAllValues<T extends pylon.Json>(
   filter?: (value: any) => boolean
 ): Promise<T> {
   let rawData: object = await getRawData(namespace);
-  if (filter !== undefined) rawData = await filterObjValues(rawData, filter);
-  if (Object.keys(rawData).length === 0) return [] as any;
+  if (filter !== undefined)
+    return Object.values(await filterObjValues(rawData, filter)) as T;
   else return Object.values(rawData) as T;
 }
 
@@ -321,8 +315,9 @@ export async function getAllKeys(
   filter?: (value: any) => boolean
 ): Promise<string[]> {
   let rawData: object = await getRawData(namespace);
-  if (filter !== undefined) rawData = await filterObjValues(rawData, filter);
-  return Object.keys(rawData);
+  if (filter !== undefined)
+    return Object.keys(await filterObjValues(rawData, filter));
+  else return Object.keys(rawData);
 }
 
 // getting the raw data
@@ -533,6 +528,320 @@ async function filterObjValues(
  * Use the command !Test (yes it is this prefix)
  new discord.command.CommandGroup().raw('Test', async (m) => {
   
+  console.log(
+    'Starting test!',
+    'If control is false, or at least one of the save() test return false, the other results will be meaningless.'
+  );
+
+  let results: any;
+  const startTime: number = Date.now();
+
+  // #region clear
+  console.log(
+    'CONTROL | TEST clear() 1:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await new pylon.KVNamespace('test ns').items()).length === 0
+  );
+  // #endregion
+
+  // #region save
+  console.log(
+    'TEST save() 1:',
+    await BetterKV.save('a key', 'a value', 'test ns', true)
+  );
+  console.log(
+    'TEST save() 2:',
+    (await BetterKV.save('a key', 'a second value', 'test ns', true)) === false
+  );
+  console.log(
+    'TEST save() 3:',
+    await BetterKV.save('a key', 'a second value', 'test ns', false)
+  );
+  console.log(
+    'TEST save() 4:',
+    (await BetterKV.save(null!, 'a value', 'test ns')) === false
+  );
+  try {
+    await BetterKV.save('a key', undefined!, 'test ns');
+  } catch (_) {
+    console.log('TEST save() 5:', true);
+  }
+  console.log(
+    'TEST save() 6:',
+    await BetterKV.save(1, 'a value', 'test ns', true)
+  );
+  console.log(
+    'TEST save() 7:',
+    await BetterKV.save('a third key', '.'.repeat(8000), 'test ns', true)
+  );
+  console.log(
+    'TEST save() 8:',
+    await BetterKV.save('a fourth key', '.'.repeat(8000), 'test ns', true)
+  );
+  // #endregion
+
+  // #region transact
+  // CONTROL
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value', 'test ns'))
+  );
+
+  console.log(
+    'TEST transact() 1:',
+    (await BetterKV.transact('not existing key', (x) => x, 'test ns')) === false
+  );
+  console.log(
+    'TEST transact() 2:',
+    await BetterKV.transact('a key', (x) => x + '.', 'test ns')
+  );
+  results = (await BetterKV.transact(
+    ['a key', 'a second key'],
+    (x) => x + ',',
+    'test ns'
+  )) as boolean[];
+  console.log('TEST transact() 3:', results[0] && results[1]);
+  console.log(
+    'TEST transact() 4:',
+    await BetterKV.transact('a key', (x) => '.'.repeat(8000), 'test ns')
+  );
+  // #endregion
+
+  // #region duplicate
+  // CONTROL
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns'))
+  );
+
+  console.log(
+    'TEST duplicate() 1:',
+    (await BetterKV.duplicate('not existing key', 'new key', 'test ns')) ===
+      false
+  );
+  console.log(
+    'TEST duplicate() 2:',
+    await BetterKV.duplicate('a key', 'new key', 'test ns')
+  );
+  console.log(
+    'TEST duplicate() 3:',
+    await BetterKV.duplicate('a key', 'new key 2', 'test ns', (x) => '.' + x)
+  );
+  // #endregion
+
+  // #region get
+  // CONTROL
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns'))
+  );
+
+  console.log(
+    'TEST get() 1:',
+    (await BetterKV.get('not existing key', 'test ns')) === undefined
+  );
+  console.log(
+    'TEST get() 2:',
+    (await BetterKV.get('a key', 'test ns')) !== undefined
+  );
+  console.log(
+    'TEST get() 3:',
+    (await BetterKV.get<string[]>(
+      ['a key', 'not existing key'],
+      'test ns'
+    ))![0] === 'a value' &&
+      (await BetterKV.get<string[]>(
+        ['a key', 'not existing key'],
+        'test ns'
+      ))![1] === undefined
+  );
+  // #endregion
+
+  // #region changeKey
+  // CONTROL
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns'))
+  );
+
+  console.log(
+    'TEST changeKey() 1:',
+    (await BetterKV.changeKey('not existing key', 'new key', 'test ns')) ===
+      false
+  );
+  console.log(
+    'TEST changeKey() 2:',
+    await BetterKV.changeKey('a key', 'new key', 'test ns')
+  );
+  console.log(
+    'TEST changeKey() 3:',
+    await BetterKV.changeKey('new key', 'a key', 'test ns', (x) => '.' + x)
+  );
+  // #endregion
+
+  // #region del
+  // CONTROL
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a third key', 'a value', 'test ns'))
+  );
+
+  console.log(
+    'TEST del() 1:',
+    (await BetterKV.del('not existing key', 'test ns')) === false
+  );
+  console.log('TEST del() 2:', await BetterKV.del('a key', 'test ns'));
+  results = (await BetterKV.del(
+    ['a second key', 'a third key'],
+    'test ns'
+  )) as boolean[];
+  console.log('TEST del() 3:', results[0] && results[1]);
+  // #endregion
+
+  // #region exist
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value', 'test ns'))
+  );
+
+  console.log(
+    'TEST exist() 1:',
+    (await BetterKV.exist('not existing key', 'test ns')) === false
+  );
+  console.log('TEST exist() 2:', await BetterKV.exist('a key', 'test ns'));
+  results = (await BetterKV.exist(
+    ['a key', 'a second key'],
+    'test ns'
+  )) as boolean[];
+  console.log('TEST exist() 3:', results[0] && results[1]);
+  // #endregion
+
+  // #region get
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value 2', 'test ns'))
+  );
+
+  console.log(
+    'TEST get() 1:',
+    (await BetterKV.get('not existing key', 'test ns')) === undefined
+  );
+  console.log(
+    'TEST get() 2:',
+    (await BetterKV.get<string>('a key', 'test ns')) === 'a value'
+  );
+  results = await BetterKV.get<string[]>(['a key', 'a second key'], 'test ns');
+  console.log(
+    'TEST get() 3:',
+    results[0] === 'a value' && results[1] === 'a value 2'
+  );
+  // #endregion
+
+  // #region getAllValues
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value 2', 'test ns'))
+  );
+
+  results = await BetterKV.getAllValues<string[]>('test ns');
+  console.log(
+    'TEST getAllValues() 1:',
+    results[0] === 'a value' && results[1] === 'a value 2'
+  );
+  results = await BetterKV.getAllValues<string[]>(
+    'test ns',
+    (x) => typeof x === 'string'
+  );
+  console.log(
+    'TEST getAllValues() 2:',
+    results[0] === 'a value' && results[1] === 'a value 2'
+  );
+  console.log(
+    'TEST getAllValues() 3:',
+    (
+      await BetterKV.getAllValues<string[]>(
+        'test ns',
+        (x) => typeof x !== 'string'
+      )
+    ).length === 0
+  );
+  // #endregion
+
+  // #region getAllKeys
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value 2', 'test ns'))
+  );
+
+  results = await BetterKV.getAllKeys('test ns');
+  console.log(
+    'TEST getAllKeys() 1:',
+    results[0] === 'a key' && results[1] === 'a second key'
+  );
+  results = await BetterKV.getAllKeys('test ns', (x) => typeof x === 'string');
+  console.log(
+    'TEST getAllKeys() 2:',
+    results[0] === 'a key' && results[1] === 'a second key'
+  );
+  console.log(
+    'TEST getAllKeys() 3:',
+    (await BetterKV.getAllKeys('test ns', (x) => typeof x !== 'string'))
+      .length === 0
+  );
+  // #endregion
+
+  // #region getRawData
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value 2', 'test ns'))
+  );
+
+  console.log(
+    'TEST getRawData() 1:',
+    JSON.stringify(await BetterKV.getRawData('test ns')) ===
+      `{"a key":"a value","a second key":"a value 2"}`
+  );
+  // #endregion
+
+  // #region count
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value 2', 'test ns'))
+  );
+
+  console.log('TEST count() 1:', (await BetterKV.count('test ns')) === 2);
+  console.log(
+    'TEST count() 2:',
+    (await BetterKV.count('test ns', (x) => typeof x === 'string')) === 2
+  );
+  console.log(
+    'TEST count() 3:',
+    (await BetterKV.count('test ns', (x) => typeof x !== 'string')) === 0
+  );
+  // #endregion
+
+  console.log('Duration', Date.now() - startTime + 'ms');
+
  });
  */
 
