@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.1.3
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.2.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -117,6 +117,20 @@ export async function save(
   }
 }
 
+export async function transact(
+  key: string | number,
+  edit: (value: pylon.Json | undefined) => pylon.Json,
+  namespace?: string,
+  replaceUndefined?: boolean
+): Promise<boolean>;
+
+export async function transact(
+  key: (string | number)[],
+  edit: (value: pylon.Json | undefined) => pylon.Json,
+  namespace?: string,
+  replaceUndefined?: boolean
+): Promise<boolean[]>;
+
 // modify values on the fly
 export async function transact(
   key: string | number | (string | number)[],
@@ -231,6 +245,16 @@ export async function changeKey(
   return deleteDataRes && saveDataRes; // delete old object and save new one
 }
 
+export async function del(
+  key: string | number,
+  namespace?: string
+): Promise<boolean>;
+
+export async function del(
+  key: (string | number)[],
+  namespace?: string
+): Promise<boolean[]>;
+
 // delete the key(s) and value(s)
 export async function del(
   key: string | number | (string | number)[],
@@ -273,6 +297,16 @@ export async function del(
   return false;
 }
 
+export async function exist(
+  key: string | number,
+  namespace?: string
+): Promise<boolean>;
+
+export async function exist(
+  key: (string | number)[],
+  namespace?: string
+): Promise<boolean[]>;
+
 // check if an key exist
 export async function exist(
   key: string | number | (string | number)[],
@@ -289,11 +323,21 @@ export async function exist(
   return (await get(key, namespace)) !== undefined;
 }
 
+export async function get<T extends pylon.Json>(
+  key: string | number,
+  namespace?: string
+): Promise<T | undefined>;
+
+export async function get<T extends pylon.Json>(
+  key: (string | number)[],
+  namespace?: string
+): Promise<T[] | undefined>;
+
 // get the values from the key(s)
 export async function get<T extends pylon.Json>(
   key: string | number | (string | number)[],
   namespace?: string
-): Promise<T | undefined> {
+): Promise<T | T[] | undefined> {
   if (Array.isArray(key)) {
     // array so just do this function recursively
     let values: (pylon.Json | undefined)[] = [];
