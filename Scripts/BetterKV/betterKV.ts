@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.1
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.2
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -619,46 +619,66 @@ async function filterObjValues(
  */
 
 /* Benchmarks:
- * Test
- let time = Date.now();
-  await BetterKV.clear(true);
-  console.log('clear', Date.now() - time + 'ms');
-  await BetterKV.save('key 1', '.'.repeat(8000));
-  await BetterKV.save('key 2', '.'.repeat(8000));
-  await BetterKV.save('key 3', '.'.repeat(8000));
-  await BetterKV.save('key 4', '.'.repeat(8000));
-  await BetterKV.save('key 5', '.'.repeat(8000));
-  console.log('save', Date.now() - time + 'ms');
-  time = Date.now();
-  await BetterKV.get(['key 1', 'key 2', 'key 3', 'key 4', 'key 5']);
-  console.log('get', Date.now() - time + 'ms');
-  time = Date.now();
-  await BetterKV.getAllKeys(undefined, (x) => x);
-  await BetterKV.getAllValues(undefined, (x) => x);
-  await BetterKV.count();
-  await BetterKV.getRawData();
-  console.log('get all', Date.now() - time + 'ms');
-  time = Date.now();
-  await BetterKV.del(['key 1', 'key 2', 'key 3', 'key 4', 'key 5']);
-  console.log('del', Date.now() - time + 'ms');
-  time = Date.now();
-  await BetterKV.clear(true);
+ import * as BetterKV from './betterKV';
+ new discord.command.CommandGroup().raw('PerfTest', async (m) => {
+  let time = Date.now();
+  const startTime = time;
+  await BetterKV.clear(true, 'benchmark');
   console.log('clear', Date.now() - time + 'ms');
 
+  await BetterKV.save('key 1', '.'.repeat(8000), 'benchmark');
+  await BetterKV.save('key 2', '.'.repeat(8000), 'benchmark');
+  await BetterKV.save('key 3', '.'.repeat(8000), 'benchmark');
+  await BetterKV.save('key 4', '.'.repeat(8000), 'benchmark');
+  await BetterKV.save('key 5', '.'.repeat(8000), 'benchmark');
+  console.log('save', Date.now() - time + 'ms');
+
+  time = Date.now();
+  await BetterKV.get(
+    ['key 1', 'key 2', 'key 3', 'key 4', 'key 5'],
+    'benchmark'
+  );
+  console.log('get', Date.now() - time + 'ms');
+
+  time = Date.now();
+  await BetterKV.getAllKeys('benchmark', (x) => x);
+  await BetterKV.getAllValues('benchmark', (x) => x);
+  await BetterKV.getEntries('benchmark');
+  await BetterKV.count('benchmark');
+  await BetterKV.getRawData('benchmark');
+  console.log('get all', Date.now() - time + 'ms');
+
+  time = Date.now();
+  await BetterKV.del(
+    ['key 1', 'key 2', 'key 3', 'key 4', 'key 5'],
+    'benchmark'
+  );
+  console.log('del', Date.now() - time + 'ms');
+
+  time = Date.now();
+  await BetterKV.clear(true, 'benchmark');
+  console.log('clear', Date.now() - time + 'ms');
+
+  console.log(
+    `All Benchmarks are done. Total time: ${Date.now() - startTime}ms`
+  );
+ });
+
  * Output: 
- * clear ~8ms
- * save ~310ms
- * get ~140ms
- * get all ~180ms
- * del ~600ms
- * clear ~8ms
+ * clear ~ 7ms 
+ * save ~ 310ms 
+ * get ~ 125ms 
+ * get all ~ 230ms 
+ * del ~ 550ms 
+ * clear ~ 7ms 
+ * All Benchmarks are done. Total time: ~ 1250ms 
  */
 
 /* Test if everything works:
  * Use the command !Test (yes it is this prefix)
   
  import * as BetterKV from './betterKV';
- new discord.command.CommandGroup().raw('TestBKV', async (m) => {
+ new discord.command.CommandGroup().raw('WorkTest', async (m) => {
   console.log(
     'Starting test!',
     'If control is false, or at least one of the save() test return false, the other results will be meaningless.'
@@ -796,11 +816,11 @@ async function filterObjValues(
   );
   console.log(
     'TEST get() 3:',
-    (await BetterKV.get<string[]>(
+    (await BetterKV.get<string>(
       ['a key', 'not existing key'],
       'test ns'
     ))![0] === 'a value' &&
-      (await BetterKV.get<string[]>(
+      (await BetterKV.get<string>(
         ['a key', 'not existing key'],
         'test ns'
       ))![1] === undefined
@@ -952,6 +972,26 @@ async function filterObjValues(
   );
   // #endregion
 
+  // #region getEntries
+  console.log(
+    'CONTROL:',
+    (await BetterKV.clear(true, 'test ns')) &&
+      (await BetterKV.save('a key', 'a value', 'test ns')) &&
+      (await BetterKV.save('a second key', 'a value 2', 'test ns'))
+  );
+
+  results = await BetterKV.getEntries('test ns');
+  console.log(
+    'TEST getEntries() 1:',
+    results[0][0] === 'a key' && results[1][0] === 'a second key'
+  );
+  console.log(
+    'TEST getEntries() 2:',
+    results[0][1] === 'a value' && results[1][1] === 'a value 2'
+  );
+  console.log('TEST getEntries() 3:', results.length === 2);
+  // #endregion
+
   // #region getRawData
   console.log(
     'CONTROL:',
@@ -986,7 +1026,7 @@ async function filterObjValues(
   );
   // #endregion
 
-  console.log('Duration', Date.now() - startTime + 'ms');
+  console.log('Duration', Date.now() - startTime + 'ms'); // Should be ~ 2000ms
 
   await BetterKV.clear(true, 'test ns');
  });
@@ -994,6 +1034,8 @@ async function filterObjValues(
 
 /* Example:
  * thats how it should look like: "https://media.discordapp.net/attachments/691250517820571649/830824466916573204/unknown.png"
+ * Commands: !save <key> <value>; !get <key>; !reset
+
  * !save <key> <value>
  new discord.command.CommandGroup().on(
   { name: 'save' },
