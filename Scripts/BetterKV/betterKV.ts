@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.0
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.1
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -93,7 +93,9 @@ export async function save(
           await KV.put(`database_${i}`, savedData as any); // total size is under 8196 so save in current key
         } else {
           // too big for current key => delete object from current key and saving it as new
-          delete (savedData as any)[key];
+          try {
+            delete (savedData as any)[key];
+          } catch (_) {}
           await KV.put(`database_${i}`, savedData as any);
           //await dbKeyOrder(KV.namespace);
           await save(key, cvalue, KV.namespace); // ~~this should be pretty rare so no real performance lost~~
@@ -293,7 +295,9 @@ export async function del(
     // object is in current key
     if ((savedData as any)[key] !== undefined) {
       // found data and deleting it localy
-      delete (savedData as any)[key];
+      try {
+        delete (savedData as any)[key];
+      } catch (_) {}
 
       // update db key
       await KV.put(`database_${i}`, savedData as any);
@@ -468,8 +472,10 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
           (await KV.get(`database_${y + 1}`)) ?? {}
         );
 
-      // deletes empty key which is now the last one
-      await KV.delete(`database_${size}`);
+      try {
+        // deletes empty key which is now the last one
+        await KV.delete(`database_${size}`);
+      } catch (_) {}
 
       // decreases the size
       --size;
@@ -478,9 +484,7 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
       if (size === 0 || size === -1)
         try {
           await KV.delete(`databaseKeySize`);
-        } catch (_) {
-          await KV.put(`databaseKeySize`, size);
-        }
+        } catch (_) {}
       else await KV.put(`databaseKeySize`, size); // update size
 
       await dbKeyOrder(KV.namespace); // restart the whole process to check for a second empty key
