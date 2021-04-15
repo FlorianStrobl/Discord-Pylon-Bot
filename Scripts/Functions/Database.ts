@@ -3,6 +3,8 @@
 
 // READ AT LEAST THE CAPSLOCK LINES (like "HOW TO USE IT") & EDIT THE LINES WITH "// EDIT" AT THE END
 
+// DEPRECATED NEW VERSION IS here https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/BetterKV/betterKV.ts
+
 /*
  * If the version is under 2.0 the SaveData() function is not optimized yet and you should check if a newer version is available
  * on "https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/Database.ts".
