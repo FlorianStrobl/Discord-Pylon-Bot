@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.2.0
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -15,14 +15,25 @@ const defaultNamespace: string = 'database';
 // pylons byte limit per KV key. you shoudn't change it!! If you bought BYOB and have higher byte limits, change the value here.
 const maxByteSize: number = 8196;
 
+// This is the default namespace.
 export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
   defaultNamespace
-); // This is the default namespace.
+);
 
 // #region compatibility functions
 export async function ConvertOldDBToNewDB(
   namespace?: string | string[]
 ): Promise<boolean | boolean[]> {
+  if (Array.isArray(namespace)) {
+    // array so just do this function recursively
+    let workedForAll: boolean[] = [];
+    for await (const ns of namespace)
+      workedForAll.push((await ConvertDBToNativeKV(ns)) as boolean);
+    return workedForAll;
+  }
+
+  const rawData: object = await getRawData(namespace);
+
   return true;
 }
 
@@ -383,6 +394,20 @@ export async function getAllKeys(
   else return Object.keys(rawData);
 }
 
+// getting [key, values]
+export async function getEntries(
+  namespace?: string
+): Promise<[string, pylon.Json][]> {
+  const KV: pylon.KVNamespace = await getKV(namespace);
+  const size: number = await getDBKeySize(KV.namespace);
+
+  let data: object[] = [];
+  for (let i: number = 0; i <= size; ++i)
+    data = data.concat(((await KV.get(`database_${i}`)) ?? {}) as object);
+
+  return Object.entries(await objArrToObj(data));
+}
+
 // getting the raw data
 export async function getRawData(namespace?: string): Promise<object> {
   const KV: pylon.KVNamespace = await getKV(namespace);
@@ -574,6 +599,7 @@ async function filterObjValues(
  * get<T extends pylon.Json>(key: string | number | (string | number)[], namespace?: string): Promise<T | undefined>;
  * getAllValues<T extends pylon.Json>(namespace?: string, filter?: (value: any) => boolean): Promise<T>;
  * getAllKeys(namespace?: string, filter?: (value: any) => boolean): Promise<string[]>;
+ * getEntries(namespace?: string): Promise<[string, pylon.Json][]>;
  * getRawData(namespace?: string): Promise<object>;
  * count(namespace?: string, filter?: (value: any) => boolean): Promise<number>;
  * clear(clearTheNamespace: boolean, namespace?: string): Promise<boolean>;
