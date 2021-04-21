@@ -2,10 +2,10 @@ import * as Definitions from './definitions';
 
 export const enabled: boolean = true; // enable/disable EVERYTHING
 
-export const prefixes: Array<string> = ['.', '!']; // prefix for cmds of the bot
+export const prefixes: string[] = ['.', '!']; // prefix for cmds of the bot
 
 // msgs on user join for #welcome
-export const welcomeMsgs: Array<string> = [
+export const welcomeMsgs: string[] = [
   `Willkommen auf dem GHC Server, @user!`,
   `Viel Spaß auf dem GermanHumorCult Server, @user!`,
   `@user ist jetzt humorvoll geworden!`,
@@ -16,7 +16,7 @@ export const welcomeMsgs: Array<string> = [
 ];
 
 // msgs in #news UTC Time fomat (-1h for germany)!!!
-export const newsMsgs: Array<Definitions.NewsMsg> = [
+export const newsMsgs: Definitions.NewsMsg[] = [
   {
     date: '24-12-21',
     text: 'Frohes Weihnachtsfest an euch! 💫 🎄'
@@ -32,7 +32,7 @@ export const newsMsgs: Array<Definitions.NewsMsg> = [
 ];
 
 // Words which can't be used by a user
-export const blackListedWords: Array<Definitions.badWords> = [
+export const blackListedWords: Definitions.badWords[] = [
   { word: 'hure', whitelistedChannels: [Channels.PURGE] }
 ];
 
@@ -57,9 +57,10 @@ export const nrElementsPage: number = 5; // nr of cmds showen on one page of the
 export const passwordLength: number = 8; // length of the password
 export const banIdLength: number = 5; // length of the ban id
 export const applyReactionDelay: number = 7 * 60 * 60 * 24; // Time in seconds in which the user can't apply
+export const verificationAccepTime: number = 6 * 60 * 60 * 1000; // time in ms which the user can verificate his captcha. Else it dets deleted
 
-export const optionsTrue: Array<string> = ['true', '1', 'start', 'open']; // accepted bools for an cmd
-export const optionsFalse: Array<string> = ['false', '0', 'stop', 'close']; // accepted bools for an cmd
+export const optionsTrue: string[] = ['true', '1', 'start', 'open']; // accepted bools for an cmd
+export const optionsFalse: string[] = ['false', '0', 'stop', 'close']; // accepted bools for an cmd
 
 // different colors for e.g. embeds
 export const enum Color {
@@ -79,23 +80,23 @@ export const enum Emojis {
 }
 
 // roles/users who can't apply in the #apply chat
-export const cantApply: Array<string> = [
+export const cantApply: discord.Snowflake[] = [
   Roles.GHCTEAM,
   Roles.TESTMOD,
   Roles.BLOCKED
 ];
 
-export const immunePunish: Array<string> = [Roles.GHCTEAM]; // roles/users which can't be punished with the punish cmd
-export const immuneCooldown: Array<string> = []; // roles/users which don't have a cooldown on a cmd TODO
-export const blackListedWordsImmune: Array<string> = []; // User and roles which are immune to the word blacklist
-export const noCommands: Array<string> = [
+export const immunePunish: discord.Snowflake[] = [Roles.GHCTEAM]; // roles/users which can't be punished with the punish cmd
+export const immuneCooldown: discord.Snowflake[] = []; // roles/users which don't have a cooldown on a cmd TODO
+export const blackListedWordsImmune: discord.Snowflake[] = []; // User and roles which are immune to the word blacklist
+export const noCommands: discord.Snowflake[] = [
   Roles.BLOCKED,
   Channels.FEEDBACK,
   Channels.MAINTENANCE
 ]; // roles/users/channels which can't use commands
 
 // order of roles permission
-export const RolePerms: Array<string> = [
+export const RolePerms: discord.Snowflake[] = [
   discord.getGuildId(),
   Roles.MEMBER,
   Roles.TESTMOD,
@@ -129,7 +130,9 @@ export const enum Channels {
   REPORT = '720673763313713274',
   BOT = '720329310078107679',
   REPORTGHC = '809790718120951829',
-  MESSAGEDELETE = '812445705565110283'
+  MESSAGEDELETE = '812445705565110283',
+  VERIFICATIONPARENT = '821014497832599612',
+  SUPPORTPARENT = '821014386226495529'
 }
 export const enum Roles {
   OWNER = '719927074764095522',
@@ -139,7 +142,7 @@ export const enum Roles {
   MOD = '720200090026901505',
   GHCTEAM = '720999882713989122',
   DONATOR = '720669033527115836',
-  BOOSTER = '720667973706317854',
+  BOOSTER = '830890484930314272',
   BOT = '720224671768903701',
   GHCBOT = '720222119564410931',
   MEMBER = '719943722879418439',
@@ -155,7 +158,7 @@ export const helpCommand: Definitions.command = {
   password: false,
   name: 'help',
   altNames: [],
-  description: 'Get help with this bot.\nArguments: `<PermissionLvl?>`',
+  description: 'Get help with this bot.\nArguments: `<permissionLvl?>`',
   inHelp: true,
   onlyBotChatMsg: false,
   blacklistUserRolesChannel: [],
@@ -163,6 +166,35 @@ export const helpCommand: Definitions.command = {
   onlyChannels: [],
   cooldown: 0,
   permLvl: Definitions.PermsRolesEnum.EVERYONE
+};
+// TODO
+export const supportCommand: Definitions.command = {
+  enabled: true,
+  password: false,
+  name: 'ticket',
+  altNames: ['support'],
+  description: 'Open a support ticket.\nArguments: `<topic>`',
+  inHelp: false,
+  onlyBotChatMsg: false,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: [],
+  onlyChannels: [Channels.FEEDBACK],
+  cooldown: 0,
+  permLvl: Definitions.PermsRolesEnum.EVERYONE
+};
+export const evalCommand: Definitions.command = {
+  enabled: true,
+  password: false,
+  name: 'eval',
+  altNames: [],
+  description: 'Let the bot execute code on run time.\nArguments: `<code>`',
+  inHelp: true,
+  onlyBotChatMsg: false,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: ['481812817628889102'],
+  onlyChannels: [],
+  cooldown: 1,
+  permLvl: Definitions.PermsRolesEnum.NONE
 };
 export const clearCommand: Definitions.command = {
   enabled: true,
@@ -177,6 +209,21 @@ export const clearCommand: Definitions.command = {
   onlyChannels: [],
   cooldown: 0,
   permLvl: Definitions.PermsRolesEnum.GHCMEMBER
+};
+export const slowmodeCommand: Definitions.command = {
+  enabled: true,
+  password: false,
+  name: 'slowmode',
+  altNames: [],
+  description:
+    'Set the slowmode for the current channel up to 6h.\nArguments: `<time>`',
+  inHelp: true,
+  onlyBotChatMsg: false,
+  blacklistUserRolesChannel: [],
+  whitelistedUserRoles: [],
+  onlyChannels: [],
+  cooldown: 0,
+  permLvl: Definitions.PermsRolesEnum.MOD
 };
 export const roleCommand: any = {
   enabled: true,
@@ -371,20 +418,6 @@ export const applyCommand: Definitions.command = {
   cooldown: 0,
   permLvl: Definitions.PermsRolesEnum.ADMIN
 };
-export const showApplicantsCommand: Definitions.command = {
-  enabled: true,
-  password: false,
-  name: 'showapplicants',
-  altNames: ['applicants'],
-  description: `Show all current applicants.`,
-  inHelp: true,
-  onlyBotChatMsg: true,
-  blacklistUserRolesChannel: [],
-  whitelistedUserRoles: [],
-  onlyChannels: [],
-  cooldown: 0,
-  permLvl: Definitions.PermsRolesEnum.ADMIN
-};
 export const pardonCommand: Definitions.command = {
   enabled: true,
   password: false,
@@ -472,10 +505,11 @@ export const resetKVCommand: Definitions.command = {
 };
 
 // all commands
-export const cmds: Array<Definitions.command> = [
+export const cmds: Definitions.command[] = [
   helpCommand,
   pingCommand,
   inviteCommand,
+  supportCommand,
   gifCommand,
   reportCommand,
   clearCommand,
@@ -484,7 +518,6 @@ export const cmds: Array<Definitions.command> = [
   surveyCommand,
   closeSurveyCommand,
   applyCommand,
-  showApplicantsCommand,
   warnCommand,
   pardonCommand,
   banCommand,
@@ -492,23 +525,58 @@ export const cmds: Array<Definitions.command> = [
   punishCommand,
   sayCommand,
   spawnMSGCommand,
-  resetKVCommand
+  resetKVCommand,
+  slowmodeCommand
 ];
 // #endregion
 
 // #region not to edit
-export const pylonId: string = '270148059269300224';
+export const pylonId: discord.Snowflake = discord.getBotId();
 
 export const botCount: number = 5; // number of bots on the server
 
 export const charactersForRandString: string =
-  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'; // characters to use if random id is needed
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; // characters to use if random id is needed
+
+export const charactersForCaptcha: string = `ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ０１２３４５６７８９`;
 
 export const maxSizePerKey: number = 8196; // max number of bytes in an array
-export const discordTimeShift: number = 1420070400000; // time shift compared to unix time
-export const timeShift: number = 7 * 24 * 60 * 60 * 1000; // milliseconds for one week
+export const discordEpoch: number = 1420070400000; // time shift compared to unix time
+export const timeShiftOneWeek: number = 7 * 24 * 60 * 60 * 1000; // milliseconds for one week
 
-export const numberEmojis: Array<string> = [
+export enum timeUnits {
+  ns = 1e-6,
+  μs = 1e-3,
+  ms = 1,
+  s = 1000,
+  min = 1000 * 60,
+  h = 1000 * 60 * 60,
+  d = 1000 * 60 * 60 * 24,
+  w = 1000 * 60 * 60 * 24 * 7,
+  mth = 1000 * 60 * 60 * 24 * 30,
+  y = 1000 * 60 * 60 * 24 * 365,
+  a = 1000 * 60 * 60 * 24 * 365.25,
+  dec = 1000 * 60 * 60 * 24 * 365 * 10,
+  cen = 1000 * 60 * 60 * 24 * 365 * 100
+}
+
+export const timeUnitsAlliases = {
+  ns: ['nanosecond(s)', 'nanosec(s)'],
+  μs: ['microsec(s)', 'microsecond(s)'],
+  ms: ['millisecond(s)', 'millisec(s)'],
+  s: ['sec(s)', 'second(s)'],
+  min: ['minute(s)', 'm', 'min(s)'],
+  h: ['hr(s)', 'hour(s)'],
+  d: ['day(s)'],
+  w: ['wk(s)', 'week(s)'],
+  mth: ['mth(s)', 'month(s)'],
+  y: ['year(s)'],
+  a: ['julianyear(s)'],
+  dec: ['decade(s)'],
+  cen: ['cent(s)', 'century', 'centuries']
+};
+
+export const numberEmojis: string[] = [
   discord.decor.Emojis.ONE,
   discord.decor.Emojis.TWO,
   discord.decor.Emojis.THREE,
@@ -522,7 +590,7 @@ export const numberEmojis: Array<string> = [
 // #endregion
 
 // the msgs from the bot
-export const GHC_MSGS: Array<Definitions.GHC_MSG> = [
+export const GHC_MSGS: Definitions.GHC_MSG[] = [
   {
     Author: true,
     img: `https://media.discordapp.net/attachments/719937675301486692/803689580632604693/pngwing.com2.png?width=1003&height=675`,
