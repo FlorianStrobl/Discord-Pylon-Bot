@@ -1,22 +1,48 @@
 import * as Definitions from '../Main/definitions';
 import * as Settings from '../Main/settings';
+import * as Functions from '../Main/functions';
+import * as BetterKV from '../Extra/betterKV';
+
+export async function TTLHandler(): Promise<void> {
+  if (!Settings.enabled) return;
+
+  // captcha
+  const captchaData:
+    | Definitions.Captcha[]
+    | undefined = (await BetterKV.getAllValues('captcha')) as any;
+
+  if (captchaData !== undefined)
+    for (const captcha of captchaData)
+      if (captcha.ttl < Date.now()) {
+        // deletes the data
+        await BetterKV.del(`u-${captcha.userId}`, 'captcha');
+        try {
+          // deletes the channel
+          (await discord.getGuildTextChannel(captcha.channelId))?.delete();
+
+          // kicks the user
+          discord.getGuild().then(async (guild) => {
+            //(await guild.getMember(captcha.userId))?.kick();
+          });
+        } catch (_) {}
+      }
+}
 
 export function NewPassword(): void {
   if (!Settings.enabled) return;
 
-  // generating new password
-  let pwd: string = '';
-  for (let i: number = 0; i < Settings.passwordLength; ++i)
-    pwd += Settings.charactersForRandString.charAt(
-      Math.floor(Math.random() * Settings.charactersForRandString.length)
-    );
+  const pwd: string = Functions.GenerateRandString(
+    Settings.charactersForRandString,
+    Settings.passwordLength
+  );
 
   // password given to the admins
   discord.getGuildTextChannel(Settings.Channels.ADMIN).then((c) =>
     c?.edit({
-      topic: `Das ist der **Admin Only** Chat. Passwort: ||${pwd}|| (Gültig bis zum: **${new Date(
-        Date.now() + Settings.timeShift
-      ).toLocaleDateString('de')}**).`
+      topic: `Das ist der **Admin Only** Chat. Passwort: ||${pwd}|| (Gültig bis zum: **${Functions.DateString(
+        true,
+        Settings.timeShiftOneWeek
+      )}**).`
     })
   );
 
@@ -31,9 +57,7 @@ export function StatsChannels(): void {
     // User count
     discord.getGuildVoiceChannel(Settings.Channels.STATSUSER).then((c) =>
       c?.edit({
-        name:
-          'Members: ' +
-          ((guild.memberCount ?? 0) - Settings.botCount).toString()
+        name: 'Members: ' + (guild.memberCount - Settings.botCount).toString()
       })
     );
 
@@ -104,18 +128,16 @@ export function NewsMessages(): void {
     (new Date().getMonth() + 1 === 11 || new Date().getMonth() + 1 === 12)
   ) {
     // a sunday in november or december at 14h
-    const weekTime: number = 7 * 24 * 60 * 60 * 1000;
     const now: number = Date.now();
-
     if (
-      (new Date(now + weekTime).getDate() === 24 &&
-        new Date(now + weekTime).getMonth() + 1 === 12) ||
-      (new Date(now + 2 * weekTime).getDate() === 24 &&
-        new Date(now + 2 * weekTime).getMonth() + 1 === 12) ||
-      (new Date(now + 3 * weekTime).getDate() === 24 &&
-        new Date(now + 3 * weekTime).getMonth() + 1 === 12) ||
-      (new Date(now + 4 * weekTime).getDate() === 24 &&
-        new Date(now + 4 * weekTime).getMonth() + 1 === 12)
+      (new Date(now + Settings.timeShiftOneWeek).getDate() === 24 &&
+        new Date(now + Settings.timeShiftOneWeek).getMonth() + 1 === 12) ||
+      (new Date(now + 2 * Settings.timeShiftOneWeek).getDate() === 24 &&
+        new Date(now + 2 * Settings.timeShiftOneWeek).getMonth() + 1 === 12) ||
+      (new Date(now + 3 * Settings.timeShiftOneWeek).getDate() === 24 &&
+        new Date(now + 3 * Settings.timeShiftOneWeek).getMonth() + 1 === 12) ||
+      (new Date(now + 4 * Settings.timeShiftOneWeek).getDate() === 24 &&
+        new Date(now + 4 * Settings.timeShiftOneWeek).getMonth() + 1 === 12)
     )
       MsgNewschannel(`Schönen Sonntag!`);
   }
@@ -124,18 +146,16 @@ export function NewsMessages(): void {
 // send embed in #news with or without title
 function MsgNewschannel(description: string | undefined, title?: string): void {
   if (!description) return;
-
-  discord.getGuildNewsChannel(Settings.Channels.NEWS).then((channel) =>
-    channel?.sendMessage(
-      new discord.Embed({
-        color: Settings.Color.DEFAULT,
-        description: description,
-        title: title === undefined || title === '' ? undefined : title,
-        timestamp:
-          title === undefined || title === ''
-            ? undefined
-            : new Date().toISOString()
-      })
-    )
+  Functions.SendMessage(
+    Settings.Channels.NEWS,
+    new discord.Embed({
+      color: Settings.Color.DEFAULT,
+      description: description,
+      title: title === undefined || title === '' ? undefined : title,
+      timestamp:
+        title === undefined || title === ''
+          ? undefined
+          : new Date().toISOString()
+    })
   );
 }
