@@ -1,53 +1,127 @@
 import * as Definitions from '../Main/definitions';
 import * as Settings from '../Main/settings';
 import * as Functions from '../Main/functions';
-import * as Database from '../Main/database';
+import * as BetterKV from '../Extra/betterKV';
+
+export async function OpenTicket(userId: discord.Snowflake): Promise<void> {}
+
+export async function SlowdownCommand(
+  msg: discord.GuildMemberMessage,
+  time: string,
+  channel: discord.GuildTextChannel | null,
+  pwd?: string
+): Promise<void> {
+  if (!(await OnCmd(msg, Settings.slowmodeCommand, pwd))) return;
+
+  const timeInMS: number = (Functions.CustomTimeStringToMS(time) ?? 0) / 1000;
+  const settedTime: number = timeInMS > 21600 ? 21600 : timeInMS;
+
+  const theChannel =
+    channel === null
+      ? ((await msg.getChannel()) as discord.GuildTextChannel)
+      : channel;
+
+  await theChannel.edit({ rateLimitPerUser: settedTime });
+
+  await msg?.reply(
+    `You setted the slowmode for the channel <#${theChannel.id}> to ${(
+      settedTime / 60
+    ).toFixed(2)} minutes!`
+  );
+}
 
 export async function ClearCommand(
-  message: discord.Message,
-  n: number
+  message: discord.GuildMemberMessage,
+  number: number,
+  pwd?: string
 ): Promise<void> {
-  let messages: string[] | undefined = await Definitions.KV.get(
-    `messages-${message.channelId}`
-  );
+  if (!(await OnCmd(message, Settings.clearCommand, pwd))) return;
+
+  // get the messages for the channel
+  const messages: discord.Snowflake[] | undefined = await BetterKV.get<
+    discord.Snowflake[]
+  >(`messages-${message.channelId}`, 'clearcmd');
   if (messages === undefined) return;
 
-  const channel = await discord.getGuildTextChannel(message.channelId);
+  const channel: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
+    message.channelId
+  );
 
-  let toDeleteMessages: string[] = [];
+  // get the messages to delete
+  let toDeleteMessages: discord.Snowflake[] = [];
   for (
-    let i = messages.length - (n <= messages.length ? n : messages.length);
+    let i: number =
+      messages.length - (number < messages.length ? number : messages.length);
     i < messages.length;
     ++i
   )
     toDeleteMessages.push(messages[i]);
 
+  // delete messages
   if (toDeleteMessages.length === 1)
     await (await channel?.getMessage(toDeleteMessages[0]))?.delete();
   else if (toDeleteMessages.length !== 0)
     await channel?.bulkDeleteMessages(toDeleteMessages);
 
-  await Definitions.KV.put(
-    `messages-${message.channelId}`,
-    messages.filter((mId) => !toDeleteMessages.includes(mId))
+  const newMessages: discord.Snowflake[] = messages.filter(
+    (m) => !toDeleteMessages.includes(m)
   );
 
+  // save message ids of left messages
+  if (newMessages.length !== 0)
+    await BetterKV.save(
+      `messages-${message.channelId}`,
+      newMessages,
+      'clearcmd'
+    );
+  else await BetterKV.del(`messages-${message.channelId}`, 'clearcmd');
+
   await message.delete();
-  const responseMsg = await message?.reply(
-    `Deleted the last ${toDeleteMessages.length} messages from this channel.`
-  );
-  setTimeout(() => responseMsg.delete(), 10000);
+
+  // response
+  if (toDeleteMessages.length !== 0)
+    await Functions.SendMessage(
+      message,
+      `Deleted the last ${toDeleteMessages.length} message(s) from this channel.`,
+      28000
+    );
+  else await Functions.SendMessage(message, `No messages deleted.`, 28000);
+}
+
+export async function EvalCommand(
+  msg: discord.GuildMemberMessage,
+  code: string,
+  pwd?: string
+): Promise<void> {
+  if (!(await OnCmd(msg, Settings.evalCommand, pwd))) return;
+
+  try {
+    await eval(code);
+    await Functions.SendMessage(
+      msg,
+      `Code\n${'```ts\n' + code + '```'}was executed.`
+    );
+  } catch (error) {
+    await Functions.SendMessage(
+      msg,
+      `Code\n${'```ts\n' + code + '```'}did error. Error message:\n${'```' +
+        error +
+        '```'}`
+    );
+  }
 }
 
 export async function HelpCommand(
   msg: discord.GuildMemberMessage,
-  helpLvlOrName: string | null
+  helpLvlOrName: string | null,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(msg, Settings.helpCommand))) return;
+  if (!(await OnCmd(msg, Settings.helpCommand, pwd))) return;
 
   await msg?.delete();
   let helpLvl: number = 1;
 
+  // getting the helpLvl
   if (helpLvlOrName !== null) {
     // it isn't just null
     if (!isNaN(parseInt(helpLvlOrName))) {
@@ -65,12 +139,12 @@ export async function HelpCommand(
 
       if (searchedCmd !== undefined) {
         // it is a command name so give the help
-        await msg?.reply({
+        await Functions.SendMessage(msg, {
           embed: new discord.Embed({
             color: Settings.Color.DEFAULT,
             title: 'Help - ' + searchedCmd.name,
             description: `${searchedCmd.description} Permission: [<@&${
-              Settings.RolePerms[searchedCmd.permLvl]
+              Settings.RolePerms[searchedCmd.permLvl as number]
             }>]`
           }),
           allowedMentions: {}
@@ -82,7 +156,8 @@ export async function HelpCommand(
 
         if (!Settings.RolePerms.includes(helpLvlOrName)) {
           // the role isn't in the permission array
-          await msg?.reply(
+          await Functions.SendMessage(
+            msg,
             new discord.Embed({
               color: Settings.Color.ERROR,
               title: 'Error',
@@ -96,7 +171,8 @@ export async function HelpCommand(
         }
       } else {
         // tried to search for a cmd which doesn't exist
-        await msg?.reply(
+        await Functions.SendMessage(
+          msg,
           new discord.Embed({
             color: Settings.Color.ERROR,
             title: 'Error',
@@ -112,39 +188,41 @@ export async function HelpCommand(
   if (helpLvl > Settings.RolePerms.length) helpLvl = Settings.RolePerms.length;
 
   // the help message
-  await msg
-    ?.reply({
-      embed: await Functions.HelpMsg(0, helpLvl),
-      allowedMentions: {}
-    })
-    .then(async (sMsg) => {
-      await sMsg?.addReaction(Settings.Emojis.DISAGREE);
+  await Functions.SendMessage(msg, {
+    embed: await Functions.HelpMsg(0, helpLvl),
+    allowedMentions: {}
+  }).then(async (sMsg) => {
+    if (sMsg === undefined) return;
+    await sMsg.addReaction(Settings.Emojis.DISAGREE);
 
-      // the right nr of reactions
-      const nr: number = Math.ceil(
-        Settings.cmds.filter((c) => c.inHelp && c.permLvl <= helpLvl!).length /
-          Settings.nrElementsPage
-      );
-      if (nr > 1)
-        for (let i = 0; i < nr; ++i)
-          await sMsg?.addReaction(Settings.numberEmojis[i]);
+    // the right nr of reactions
+    const nr: number = Math.ceil(
+      Settings.cmds.filter((c) => c.inHelp && c.permLvl <= helpLvl!).length /
+        Settings.nrElementsPage
+    );
+    if (nr > 1)
+      for (let i = 0; i < nr; ++i)
+        await sMsg.addReaction(Settings.numberEmojis[i]);
 
-      // helps in KV
-      let helps: Array<Definitions.HelpCmd> =
-        (await Definitions.KV.get<Array<Definitions.HelpCmd>>(`helps`)) ?? [];
-      helps.push({
-        msg: sMsg.id.toString(),
-        permissionLvl: helpLvl ?? 0,
-        language: 'DE'
-      });
-      await Definitions.KV.put(`helps`, helps);
+    // helps in KV
+    let helps: Definitions.HelpCmd[] =
+      (await BetterKV.get<Definitions.HelpCmd[]>(`helps`, 'helpcmd')) ?? [];
+
+    helps.push({
+      msg: sMsg.id.toString(),
+      permissionLvl: helpLvl ?? 0,
+      language: 'DE'
     });
+
+    await BetterKV.save('helps', helps, 'helpcmd');
+  });
 }
 
 export async function ServerStatsCommand(
-  msg: discord.GuildMemberMessage
+  msg: discord.GuildMemberMessage,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(msg, Settings.serverStatsCommand))) return;
+  if (!(await OnCmd(msg, Settings.serverStatsCommand, pwd))) return;
 
   const guild: discord.Guild = await discord.getGuild();
   let channelCount: number = 0;
@@ -159,7 +237,8 @@ export async function ServerStatsCommand(
     guild.ownerId
   );
 
-  await msg?.reply(
+  await Functions.SendMessage(
+    msg,
     new discord.Embed({
       color: Settings.Color.DEFAULT,
       title: guild.name,
@@ -196,8 +275,7 @@ export async function ServerStatsCommand(
           name: 'Created On',
           value: new Date(
             Number(
-              (BigInt(guild.id) >> BigInt(22)) +
-                BigInt(Settings.discordTimeShift)
+              (BigInt(guild.id) >> BigInt(22)) + BigInt(Settings.discordEpoch)
             )
           ).toLocaleDateString(),
           inline: false
@@ -214,43 +292,52 @@ export async function ServerStatsCommand(
 }
 
 export async function PingCommand(
-  msg: discord.GuildMemberMessage
+  msg: discord.GuildMemberMessage,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(msg, Settings.pingCommand))) return;
-  await msg?.reply(
+  if (!(await OnCmd(msg, Settings.pingCommand, pwd))) return;
+  await Functions.SendMessage(
+    msg,
     `The ping is: ${Date.now() -
-      Number(
-        (BigInt(msg.id) >> BigInt(22)) + BigInt(Settings.discordTimeShift)
-      )}ms`
+      Number((BigInt(msg.id) >> BigInt(22)) + BigInt(Settings.discordEpoch))}ms`
   );
 }
 
 export async function InviteCommand(
-  msg: discord.GuildMemberMessage
+  msg: discord.GuildMemberMessage,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(msg, Settings.inviteCommand))) return;
+  if (!(await OnCmd(msg, Settings.inviteCommand, pwd))) return;
 
   const guild: discord.Guild | null = await discord.getGuild();
-  const inviteLinks: Array<
-    discord.GuildInvite
-  > | null = await guild?.getInvites();
+  const inviteLinks: discord.GuildInvite[] = await guild.getInvites();
 
-  await Functions.delMsg(msg, 19000);
+  if (inviteLinks.length === 0) {
+    await Functions.SendMessage(
+      msg,
+      'Tut uns leid, derzeit gibt es keinen Einladungslink.'
+    );
+    return;
+  }
+
+  setTimeout(() => msg?.delete(), 28000);
   // the first invite
-  await Functions.delMsg(await msg?.reply(inviteLinks[0].getUrl()), 19000);
+  await Functions.SendMessage(msg, inviteLinks[0].getUrl(), 28000);
 }
 
 export async function ReportCommand(
   message: discord.GuildMemberMessage,
   user: discord.GuildMember,
-  reason: string
+  reason: string,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.reportCommand))) return;
+  if (!(await OnCmd(message, Settings.reportCommand, pwd))) return;
 
   const commandAuthor: discord.GuildMember = message.member;
 
   if (user.roles.includes(Settings.Roles.BOT)) {
-    await message?.reply(
+    await Functions.SendMessage(
+      message,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -260,67 +347,62 @@ export async function ReportCommand(
     return;
   }
 
-  await discord
-    .getGuildTextChannel(
-      user.roles.includes(Settings.Roles.GHCTEAM)
-        ? Settings.Channels.REPORTGHC
-        : Settings.Channels.REPORT
-    )
-    .then(async (c) => {
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.ORANGE,
-          title: 'Report',
-          timestamp: new Date().toISOString(),
-          thumbnail: { url: user.user.getAvatarUrl() ?? undefined },
-          fields: [
-            { name: 'Author', value: commandAuthor.toMention(), inline: true },
-            { name: 'User', value: user.toMention(), inline: true },
-            { name: 'Reason', value: reason, inline: false }
-          ]
-        })
-      );
+  await Functions.SendMessage(
+    user.roles.includes(Settings.Roles.GHCTEAM)
+      ? Settings.Channels.REPORTGHC
+      : Settings.Channels.REPORT,
+    new discord.Embed({
+      color: Settings.Color.ORANGE,
+      title: 'Report',
+      timestamp: new Date().toISOString(),
+      thumbnail: { url: user.user.getAvatarUrl() ?? undefined },
+      fields: [
+        { name: 'Author', value: commandAuthor.toMention(), inline: true },
+        { name: 'User', value: user.toMention(), inline: true },
+        { name: 'Reason', value: reason, inline: false }
+      ]
+    })
+  );
 
-      await Functions.delMsg(
-        await message?.reply(
-          new discord.Embed({
-            color: Settings.Color.DEFAULT,
-            title: 'Report',
-            description: `${commandAuthor.toMention()} Dein report wurde an das Team weitergeleitet!`
-          })
-        ),
-        10000
-      );
+  await Functions.SendMessage(
+    message,
+    new discord.Embed({
+      color: Settings.Color.DEFAULT,
+      title: 'Report',
+      description: `${commandAuthor.toMention()} Dein report wurde an das Team weitergeleitet!`
+    }),
+    10000
+  );
 
-      await Database.UpdateDataValues(
-        `user-${user.user.id}`,
-        (u) => {
-          (u.r as number)++;
-          return u;
-        },
-        'user'
-      );
+  await BetterKV.transact(
+    `user-${user.user.id}`,
+    (u) => {
+      u = (u === undefined
+        ? Functions.SaveNewUser(commandAuthor.user.id)
+        : u) as Definitions.GHC_User;
+      (u as Definitions.GHC_User).r++;
+      return u;
+    },
+    'user'
+  );
 
-      await message?.delete();
-    });
+  await message?.delete();
 }
 
 export async function SayCommand(
   message: discord.GuildMemberMessage,
-  password: string,
-  text: string
+  text: string,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.sayCommand, password))) return;
+  if (!(await OnCmd(message, Settings.sayCommand, pwd))) return;
 
-  await discord.getGuildNewsChannel(Settings.Channels.NEWS).then(
-    async (c) =>
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.DEFAULT,
-          title: 'Announcement',
-          description: text
-        })
-      )
+  await Functions.SendMessage(
+    Settings.Channels.NEWS,
+    new discord.Embed({
+      color: Settings.Color.DEFAULT,
+      title: 'Announcement',
+      description: text
+    })
   );
 
   await message?.delete();
@@ -328,10 +410,10 @@ export async function SayCommand(
 
 export async function SurveyCommand(
   message: discord.GuildMemberMessage,
-  password: string,
-  survey: string
+  survey: string,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.surveyCommand, password))) return;
+  if (!(await OnCmd(message, Settings.surveyCommand, pwd))) return;
 
   await message?.delete();
 
@@ -344,7 +426,8 @@ export async function SurveyCommand(
 
   const theSurveyInTheSurveyChannel:
     | discord.Message
-    | undefined = await channelSurvey?.sendMessage(
+    | undefined = await Functions.SendMessage(
+    channelSurvey,
     new discord.Embed({
       color: Settings.Color.DEFAULT,
       title: 'Serverumfrage',
@@ -357,7 +440,8 @@ export async function SurveyCommand(
   await theSurveyInTheSurveyChannel?.addReaction(Settings.Emojis.DISAGREE);
   await theSurveyInTheSurveyChannel?.addReaction(Settings.Emojis.QUESTION);
 
-  await channelBot?.sendMessage(
+  await Functions.SendMessage(
+    channelBot,
     new discord.Embed({
       color: Settings.Color.DEFAULT,
       title: 'Survey',
@@ -366,8 +450,8 @@ export async function SurveyCommand(
     })
   );
 
-  let surveyIds: Array<string> =
-    (await Definitions.KV.get<Array<string>>(`surveyIds`)) ?? [];
+  let surveyIds: string[] =
+    (await Definitions.KV.get<string[]>(`surveyIds`)) ?? [];
 
   surveyIds.push(theSurveyInTheSurveyChannel!.id);
 
@@ -376,17 +460,18 @@ export async function SurveyCommand(
 
 export async function CloseSurveyCommand(
   message: discord.GuildMemberMessage,
-  password: string,
-  surveyNr: number
+  surveyNr: number,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.closeSurveyCommand, password))) return;
+  if (!(await OnCmd(message, Settings.closeSurveyCommand, pwd))) return;
 
   const commandAuthor: discord.GuildMember = message.member;
-  const surveyIds: Array<string> =
-    (await Definitions.KV.get<Array<string>>(`surveyIds`)) ?? [];
+  const surveyIds: string[] =
+    (await Definitions.KV.get<string[]>(`surveyIds`)) ?? [];
 
   if (surveyIds.length === 0) {
-    await message?.reply(
+    await Functions.SendMessage(
+      message,
       new discord.Embed({
         color: Settings.Color.RED,
         title: 'Error',
@@ -394,7 +479,8 @@ export async function CloseSurveyCommand(
       })
     );
   } else if (surveyIds!.length < surveyNr) {
-    await message?.reply(
+    await Functions.SendMessage(
+      message,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -403,7 +489,8 @@ export async function CloseSurveyCommand(
     );
   } else {
     if (await CloseASurveyMsg(commandAuthor, surveyNr)) {
-      await message?.reply(
+      await Functions.SendMessage(
+        message,
         new discord.Embed({
           color: Settings.Color.DEFAULT,
           title: 'Closed survey',
@@ -411,7 +498,8 @@ export async function CloseSurveyCommand(
         })
       );
     } else {
-      await message?.reply(
+      await Functions.SendMessage(
+        message,
         new discord.Embed({
           color: Settings.Color.ERROR,
           title: 'Error',
@@ -424,10 +512,10 @@ export async function CloseSurveyCommand(
 
 export async function ApplyCommand(
   message: discord.GuildMemberMessage,
-  password: string,
-  bool: string
+  bool: string,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.applyCommand, password))) return;
+  if (!(await OnCmd(message, Settings.applyCommand, pwd))) return;
 
   const commandAuthor: discord.GuildMember = message.member;
   const channelApply: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
@@ -482,7 +570,8 @@ export async function ApplyCommand(
     );
   } else {
     // wrong input
-    await message?.reply(
+    await Functions.SendMessage(
+      message,
       new discord.Embed({
         color: Settings.Color.DEFAULT,
         title: 'Apply phase',
@@ -493,58 +582,22 @@ export async function ApplyCommand(
   await message?.delete();
 }
 
-export async function ShowApplicants(
-  message: discord.GuildMemberMessage
-): Promise<void> {
-  if (!(await OnCmd(message, Settings.showApplicantsCommand))) return;
-
-  const guild: discord.Guild | null = await discord.getGuild();
-  const commandAuthor: discord.GuildMember = message.member;
-
-  let applicants: Array<string> = [];
-  //for await (const usersOfServer of guild?.iterMembers()) {
-  //  if (usersOfServer.roles.includes(Settings.Roles.APPLY)) {
-  //    applicants.push('\n' + usersOfServer.toMention());
-  //  }
-  //}
-
-  // TODO
-
-  if (applicants.length === 0) {
-    await message?.reply(
-      new discord.Embed({
-        color: Settings.Color.DEFAULT,
-        title: 'The applicants',
-        description: `${commandAuthor.toMention()} Nobody applied for a role!`
-      })
-    );
-  } else {
-    await message?.reply(
-      new discord.Embed({
-        color: Settings.Color.DEFAULT,
-        title: 'The applicants',
-        description: `${commandAuthor.toMention()} the applicants are: ${applicants.toString()}`
-      })
-    );
-  }
-
-  await message?.delete();
-}
-
 export async function UserStatsCommand(
   message: discord.GuildMemberMessage,
-  user: discord.GuildMember
+  user: discord.GuildMember,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.userStatsCommand))) return;
+  if (!(await OnCmd(message, Settings.userStatsCommand, pwd))) return;
 
-  const userData: Definitions.GHC_User | undefined = (await Database.GetData(
+  const userData: Definitions.GHC_User | undefined = (await BetterKV.get(
     `user-${user.user.id}`,
     'user'
   )) as Definitions.GHC_User | undefined;
 
   if (userData === undefined) return;
 
-  await message?.reply(
+  await Functions.SendMessage(
+    message,
     new discord.Embed({
       color: Settings.Color.DEFAULT,
       title: 'User stats',
@@ -583,47 +636,45 @@ export async function UserStatsCommand(
       ]
     })
   );
-
-  await message?.delete();
 }
 
 export async function ResetKvCommand(
   message: discord.GuildMemberMessage,
-  password: string
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.resetKVCommand, password))) return;
+  if (!(await OnCmd(message, Settings.resetKVCommand, pwd))) return;
 
   await message?.delete();
 
   await Definitions.KV.clear();
 
-  await discord.getGuildTextChannel(Settings.Channels.BOT).then(
-    async (c) =>
-      await c?.sendMessage(
-        new discord.Embed({
-          color: Settings.Color.DEFAULT,
-          title: 'Reset KV',
-          description: `${message.member.toMention()} reseted the KV.`,
-          timestamp: new Date().toISOString()
-        })
-      )
+  await Functions.SendMessage(
+    Settings.Channels.BOT,
+    new discord.Embed({
+      color: Settings.Color.DEFAULT,
+      title: 'Reset KV',
+      description: `${message.member.toMention()} reseted the KV.`,
+      timestamp: new Date().toISOString()
+    })
   );
 }
 
 export async function ShowCaseCommand(
   message: discord.GuildMemberMessage,
-  Id: string
+  Id: string,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.showCaseCommand))) return;
+  if (!(await OnCmd(message, Settings.showCaseCommand, pwd))) return;
 
-  const warnArray: Array<Definitions.WarnCase> =
-    (await Definitions.KV.get<Array<Definitions.WarnCase>>(`WarnCases`)) ?? [];
+  const warnArray: Definitions.WarnCase[] =
+    (await Definitions.KV.get<Definitions.WarnCase[]>(`WarnCases`)) ?? [];
 
   const warnCase: Definitions.WarnCase | undefined =
     warnArray.find((w) => w.caseId === Id) ?? undefined;
 
   if (warnCase === undefined) {
-    await message?.reply(
+    await Functions.SendMessage(
+      message,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -676,14 +727,15 @@ export async function ShowCaseCommand(
     ]
   });
 
-  await message?.reply(embed);
+  await Functions.SendMessage(message, embed);
 }
 
 export async function PardonCommand(
   message: discord.GuildMemberMessage,
-  user: discord.GuildMember
+  user: discord.GuildMember,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.pardonCommand))) return;
+  if (!(await OnCmd(message, Settings.pardonCommand, pwd))) return;
 
   const commandAuthor: discord.GuildMember = message.member;
   const channelBot: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
@@ -694,16 +746,20 @@ export async function PardonCommand(
     await user?.addRole(Settings.Roles.MEMBER);
     await user?.removeRole(Settings.Roles.BLOCKED);
 
-    await Database.UpdateDataValues(
+    await BetterKV.transact(
       `user-${user.user.id}`,
       (u) => {
+        u = (u === undefined
+          ? Functions.SaveNewUser(commandAuthor.user.id)
+          : u) as Definitions.GHC_User;
         u.s = true;
         return u;
       },
       'user'
     );
 
-    await channelBot?.sendMessage(
+    await Functions.SendMessage(
+      channelBot,
       new discord.Embed({
         color: Settings.Color.DEFAULT,
         title: 'Pardon',
@@ -720,7 +776,8 @@ export async function PardonCommand(
     );
     await message?.delete();
   } else {
-    await message?.reply(
+    await Functions.SendMessage(
+      message,
       new discord.Embed({
         color: Settings.Color.DEFAULT,
         title: 'Error',
@@ -734,78 +791,46 @@ export async function PardonCommand(
 
 export async function SpawnMessageCommand(
   message: discord.GuildMemberMessage,
-  password: string,
-  MSGNr: number
+  MSGNr: number,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(message, Settings.spawnMSGCommand, password))) return;
-
-  const channelRegeln: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.RULES
-  );
-  const channelBewerbungen: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.APPLYS
-  );
-  const channelServerwartungen: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.MAINTENANCE
-  );
-  const channelFeedback: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.FEEDBACK
-  );
-  const channelSupporter: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.SUPPORTER
-  );
-  const channelModerator: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
+  if (!(await OnCmd(message, Settings.spawnMSGCommand, pwd))) return;
+  const channels: discord.Snowflake[] = [
+    Settings.Channels.RULES,
+    Settings.Channels.FEEDBACK,
+    Settings.Channels.APPLYS,
+    Settings.Channels.MAINTENANCE,
+    Settings.Channels.SUPPORTER,
     Settings.Channels.MODERATOR
+  ];
+
+  const msg: discord.Message | undefined = await Functions.SendMessage(
+    channels[MSGNr],
+    await Functions.GHCEmbed(MSGNr)
   );
 
-  switch (MSGNr) {
-    case 0:
-      await channelRegeln
-        ?.sendMessage(await Functions.GHCEmbed(MSGNr))
-        .then(async (msg) => {
-          await msg?.addReaction(Settings.Emojis.AGREE);
-          await msg?.addReaction(Settings.Emojis.DISAGREE);
-        });
-      break;
-    case 1:
-      await channelFeedback?.sendMessage(await Functions.GHCEmbed(MSGNr));
-      break;
-    case 2:
-      await channelBewerbungen
-        ?.sendMessage(await Functions.GHCEmbed(MSGNr))
-        .then(async (msg) => await msg.addReaction(Settings.Emojis.APPLY));
-      break;
-    case 3:
-      await channelServerwartungen?.sendMessage(
-        await Functions.GHCEmbed(MSGNr)
-      );
-      break;
-    case 4:
-      await channelSupporter?.sendMessage(await Functions.GHCEmbed(MSGNr));
-      break;
-    case 5:
-      await channelModerator
-        ?.sendMessage(await Functions.GHCEmbed(MSGNr))
-        .then(async (msg) => {
-          await msg?.addReaction('name:720593275203092511');
-        });
-      break;
-  }
+  if (MSGNr === 0) {
+    await msg?.addReaction(Settings.Emojis.AGREE);
+    await msg?.addReaction(Settings.Emojis.DISAGREE);
+  } else if (MSGNr === 2) await msg?.addReaction(Settings.Emojis.APPLY);
+  else if (MSGNr === 5) await msg?.addReaction('name:720593275203092511');
 
   await message?.delete();
 }
 
 export async function GifCommand(
-  msg: discord.GuildMemberMessage
+  msg: discord.GuildMemberMessage,
+  pwd?: string
 ): Promise<void> {
-  if (!(await OnCmd(msg, Settings.gifCommand))) return;
+  if (!(await OnCmd(msg, Settings.gifCommand, pwd))) return;
 
   const req: Response | null = await fetch(
     `https://some-random-api.ml/animu/pat`
   );
   const data: any = await req.json();
 
-  await msg?.reply(
+  await Functions.SendMessage(
+    msg,
     new discord.Embed({
       title: `A gif!`,
       color: Settings.Color.DEFAULT,
@@ -814,20 +839,71 @@ export async function GifCommand(
   );
 }
 
+export async function SupportCommand(
+  cmd: discord.interactions.commands.SlashCommandInteraction,
+  topic?: string,
+  pwd?: string
+): Promise<void> {
+  if (!Settings.enabled) return;
+
+  const guild = await discord.getGuild();
+
+  await guild
+    .createChannel({
+      type: discord.Channel.Type.GUILD_TEXT,
+      name: `SUPPORT-${cmd.member.user.id}`,
+      parentId: Settings.Channels.SUPPORTPARENT,
+      rateLimitPerUser: 3,
+      topic: topic ?? undefined,
+      permissionOverwrites: [
+        {
+          type: discord.Channel.PermissionOverwriteType.ROLE,
+          id: guild.id,
+          allow: 0,
+          deny: 0x400
+        },
+        {
+          type: discord.Channel.PermissionOverwriteType.ROLE,
+          id: Settings.Roles.GHCTEAM,
+          allow: 0x400 | 0x10000 | 0x800 | 0x10,
+          deny: 0
+        },
+        {
+          type: discord.Channel.PermissionOverwriteType.MEMBER,
+          id: cmd.member.user.id,
+          allow: 0x400 | 0x10000 | 0x800,
+          deny: 0
+        }
+      ]
+    })
+    .then(async (c) => {
+      await Functions.SendMessage(
+        c as discord.GuildTextChannel,
+        new discord.Embed({
+          title: 'Support',
+          color: Settings.Color.DEFAULT,
+          description: `Schreib hier dein anliegen. Wir werden dir in spätestens 24h antworten. Sollten wir diesen Thread als unnötig oder abgeschlossen halten werden wir diesen Channel ohne vorankündigung schließen.`,
+          footer: { text: 'topic: ' + (topic ?? '-') }
+        })
+      );
+      await cmd.respondEphemeral(
+        `Ein Ticket wurde erstellt. Schreibe uns dein Anliegen nun hier: <#${
+          (c as discord.GuildTextChannel).id
+        }>`
+      );
+    });
+}
+
+// Depreciated
 export async function WarnCommand(
   message: discord.interactions.commands.SlashCommandInteraction,
   user: discord.GuildMember,
-  reason: string
+  reason: string,
+  pwd?: string
 ): Promise<void> {
-  //if (!(await OnCmd(message, Settings.warnCommand))) return;
+  //if (!(await OnCmd(message, Settings.warnCommand, pwd))) return;
 
   const commandAuthor: discord.GuildMember | null = message.member;
-  const channelBot: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.BOT
-  );
-  const channelBanGrund: discord.GuildTextChannel | null = await discord.getGuildTextChannel(
-    Settings.Channels.BANREASON
-  );
 
   if (
     !(
@@ -840,9 +916,12 @@ export async function WarnCommand(
       await user.addRole(Settings.Roles.BLOCKED);
       await user.removeRole(Settings.Roles.MEMBER);
 
-      await Database.UpdateDataValues(
+      await BetterKV.transact(
         `user-${user.user.id}`,
         (u) => {
+          u = (u === undefined
+            ? Functions.SaveNewUser(commandAuthor.user.id)
+            : u) as Definitions.GHC_User;
           u.s = false; // user is blocked
           u.g = ((u.g as number) ?? 0) + 1; // user was blocked once more
           return u;
@@ -850,6 +929,7 @@ export async function WarnCommand(
         'user'
       );
 
+      // TODO
       let id: string = '';
       for (let i: number = 0; i < Settings.banIdLength; i++) {
         id += Settings.charactersForRandString.charAt(
@@ -857,9 +937,8 @@ export async function WarnCommand(
         );
       }
 
-      let Warns: Array<Definitions.WarnCase> =
-        (await Definitions.KV.get<Array<Definitions.WarnCase>>(`WarnCases`)) ??
-        [];
+      let Warns: Definitions.WarnCase[] =
+        (await Definitions.KV.get<Definitions.WarnCase[]>(`WarnCases`)) ?? [];
       Warns.push({
         author: commandAuthor.user.id,
         user: user.user.id,
@@ -869,7 +948,8 @@ export async function WarnCommand(
       });
       await Definitions.KV.put(`WarnCases`, Warns);
 
-      await channelBanGrund?.sendMessage(
+      await Functions.SendMessage(
+        Settings.Channels.BANREASON,
         new discord.Embed({
           color: Settings.Color.RED,
           title: 'Warn',
@@ -890,7 +970,8 @@ export async function WarnCommand(
         })
       );
 
-      await channelBot?.sendMessage(
+      await Functions.SendMessage(
+        Settings.Channels.BOT,
         new discord.Embed({
           color: Settings.Color.RED,
           title: 'Warn',
@@ -931,7 +1012,8 @@ export async function WarnCommand(
       ]
     });
 
-    await channelBot?.sendMessage(
+    await Functions.SendMessage(
+      Settings.Channels.BOT,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -957,8 +1039,8 @@ async function CloseASurveyMsg(
   let downVotes: number = 0;
   let dontKnowVotes: number = 0;
 
-  let surveyIds: Array<string> =
-    (await Definitions.KV.get<Array<string>>(`surveyIds`)) ?? [];
+  let surveyIds: discord.Snowflake[] =
+    (await Definitions.KV.get<discord.Snowflake[]>(`surveyIds`)) ?? [];
 
   if (surveyIds.length === 0 || surveyIds === undefined) return false;
 
@@ -1004,7 +1086,7 @@ async function CloseASurveyMsg(
       );
     }
 
-    await channelBot?.sendMessage(surveyVotesMSG);
+    await Functions.SendMessage(channelBot, surveyVotesMSG);
     await toDeleteSurvey?.delete();
     surveyIds.splice(nr - 1, 1);
   } else {
@@ -1050,7 +1132,7 @@ async function CloseASurveyMsg(
         );
       }
 
-      await channelBot?.sendMessage(surveyVotesMSG);
+      await Functions.SendMessage(channelBot, surveyVotesMSG);
       await toDeleteSurvey?.delete();
     });
 
@@ -1066,28 +1148,11 @@ async function OnCmd(
   cmd: Definitions.command,
   pwd?: string
 ): Promise<boolean> {
-  // Get user
-  const user: Definitions.GHC_User | undefined = (await Database.GetData(
-    `user-${msg.member.user.id}`,
-    'user'
-  )) as Definitions.GHC_User | undefined;
-
-  if (user === undefined) {
-    // bot disabled
-    await msg?.reply(
-      new discord.Embed({
-        color: Settings.Color.ERROR,
-        title: 'Error',
-        description: `You are not in the database. Ask @ClashCrafter to add you there.`
-      })
-    );
-    return false;
-  }
-
   // bot enabled
   if (Settings.enabled !== true) {
     // bot disabled
-    await msg?.reply(
+    await Functions.SendMessage(
+      msg,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -1097,10 +1162,28 @@ async function OnCmd(
     return false;
   }
 
+  // check user
+  const user: Definitions.GHC_User | undefined = await BetterKV.get<
+    Definitions.GHC_User
+  >(`user-${msg.member.user.id}`, 'user');
+  if (user === undefined) {
+    // user isn't in db
+    await Functions.SendMessage(
+      msg,
+      new discord.Embed({
+        color: Settings.Color.ERROR,
+        title: 'Error',
+        description: `You are not in the database. Ask @ClashCrafter to add you there.`
+      })
+    );
+    return false;
+  }
+
   // command enabled
   if (cmd.enabled !== true) {
     // cmd disabled
-    await msg?.reply(
+    await Functions.SendMessage(
+      msg,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -1111,12 +1194,10 @@ async function OnCmd(
   }
 
   // password
-  if (
-    cmd.password === true &&
-    (!(await Functions.getPwd(pwd)) || pwd === undefined)
-  ) {
+  if (cmd.password === true && (!(await getPwd(pwd)) || pwd === undefined)) {
     // wrong password
-    await msg?.reply(
+    await Functions.SendMessage(
+      msg,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -1129,7 +1210,8 @@ async function OnCmd(
   // cooldown
   if (cmd.cooldown !== 0 && Date.now() < (user.c ?? 0)) {
     // user is in cooldown
-    await msg?.reply(
+    await Functions.SendMessage(
+      msg,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -1142,9 +1224,12 @@ async function OnCmd(
     return false;
   } else if (cmd.cooldown !== 0) {
     // set cooldown
-    await Database.UpdateDataValues(
+    await BetterKV.transact(
       `user-${msg.member.user.id}`,
       (u) => {
+        u = (u === undefined
+          ? Functions.SaveNewUser(msg.author.id)
+          : u) as Definitions.GHC_User;
         u.c = Date.now() + cmd.cooldown * 1000;
         return u;
       },
@@ -1162,7 +1247,8 @@ async function OnCmd(
     !cmd.whitelistedUserRoles.some((r) => msg.member.roles.includes(r))
   ) {
     // user/role is on global/local blacklist
-    await msg?.reply(
+    await Functions.SendMessage(
+      msg,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: '🔒 Error',
@@ -1173,35 +1259,34 @@ async function OnCmd(
       })
     );
 
-    discord.getGuild().then((guild) => {
-      discord.getGuildTextChannel(Settings.Channels.BOT).then((c) => {
-        c?.sendMessage(
-          new discord.Embed({
-            color: Settings.Color.ERROR,
-            title: '🔒 Error',
-            timestamp: new Date().toISOString(),
-            thumbnail: { url: msg.member?.user.getAvatarUrl() ?? undefined },
-            footer: {
-              text: 'GHCBot',
-              iconUrl: guild?.getIconUrl()?.toString()
+    discord.getGuild().then(async (guild) => {
+      await Functions.SendMessage(
+        Settings.Channels.BOT,
+        new discord.Embed({
+          color: Settings.Color.ERROR,
+          title: '🔒 Error',
+          timestamp: new Date().toISOString(),
+          thumbnail: { url: msg.member?.user.getAvatarUrl() ?? undefined },
+          footer: {
+            text: 'GHCBot',
+            iconUrl: guild?.getIconUrl()?.toString()
+          },
+          fields: [
+            {
+              name: 'User',
+              value: msg.member?.toMention() ?? `-`,
+              inline: true
             },
-            fields: [
-              {
-                name: 'User',
-                value: msg.member?.toMention() ?? `-`,
-                inline: true
-              },
-              { name: 'Channel', value: `<#${msg.channelId}>`, inline: true },
-              { name: 'Command', value: cmd.name, inline: true },
-              {
-                name: 'Message content',
-                value: msg.content ?? `-`,
-                inline: false
-              }
-            ]
-          })
-        );
-      });
+            { name: 'Channel', value: `<#${msg.channelId}>`, inline: true },
+            { name: 'Command', value: cmd.name, inline: true },
+            {
+              name: 'Message content',
+              value: msg.content ?? `-`,
+              inline: false
+            }
+          ]
+        })
+      );
     });
 
     return false;
@@ -1214,7 +1299,8 @@ async function OnCmd(
     (cmd.onlyChannels.length !== 0 && !cmd.onlyChannels.includes(msg.channelId))
   ) {
     // channel is on global/local/manual blacklist
-    await msg?.reply(
+    await Functions.SendMessage(
+      msg,
       new discord.Embed({
         color: Settings.Color.ERROR,
         title: 'Error',
@@ -1226,16 +1312,16 @@ async function OnCmd(
 
   // only #bot
   if (cmd.onlyBotChatMsg === true) {
-    await msg
-      ?.reply(
-        new discord.Embed({
-          color: Settings.Color.RED,
-          timestamp: new Date().toISOString(),
-          title: 'Warnung',
-          description: Settings.botMessages.de.cmdOnlyCmdChannel
-        })
-      )
-      .then((m) => setTimeout(() => m?.delete(), 10000));
+    await Functions.SendMessage(
+      msg,
+      new discord.Embed({
+        color: Settings.Color.RED,
+        timestamp: new Date().toISOString(),
+        title: 'Warnung',
+        description: Settings.botMessages.de.cmdOnlyCmdChannel
+      }),
+      10000
+    );
   }
 
   if (
@@ -1254,7 +1340,8 @@ async function OnCmd(
     return true;
 
   // no true or false filter worked so it is passed as false
-  await msg?.reply(
+  await Functions.SendMessage(
+    msg,
     new discord.Embed({
       color: Settings.Color.ERROR,
       title: '🔒 Error',
@@ -1262,6 +1349,14 @@ async function OnCmd(
     })
   );
   return false;
+}
+
+async function getPwd(pwd?: string): Promise<string | boolean> {
+  const realpwd: string | undefined = await Definitions.KV.get<string>(`pwd`);
+  if (realpwd === undefined) return false;
+
+  if (pwd !== undefined) return realpwd === pwd;
+  return realpwd;
 }
 
 /*
