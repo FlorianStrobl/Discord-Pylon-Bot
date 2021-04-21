@@ -1,21 +1,175 @@
 import * as Definitions from './definitions';
 import * as Settings from './settings';
+import * as BetterKV from '../Extra/betterKV';
 
-export function TimeString(): string {
-  return (
-    '`[' +
-    `${new Date(Date.now())
-      .getHours()
-      .toString()
-      .padStart(2, '0')}:${new Date(Date.now())
-      .getMinutes()
-      .toString()
-      .padStart(2, '0')}:${new Date(Date.now())
-      .getSeconds()
-      .toString()
-      .padStart(2, '0')}` +
-    ']`'
+export function GenerateRandString(
+  characterSet: string,
+  length: number
+): string {
+  // generating new password
+  let pwd: string = '';
+  for (let i: number = 0; i < length; ++i)
+    pwd += characterSet.charAt(Math.floor(Math.random() * characterSet.length));
+  return pwd;
+}
+
+// TODO
+export function SaveNewUser(
+  userId: discord.Snowflake,
+  userInfos?: Object
+): Definitions.GHC_User {
+  return {} as any;
+}
+
+export function GenerateCaptcha(): { msg: string; value: string } {
+  const captchaString: string = GenerateRandString(
+    Settings.charactersForCaptcha,
+    5
   );
+
+  let answerString: string = '';
+  for (const s of captchaString)
+    answerString += Settings.charactersForRandString.split('')[
+      Settings.charactersForCaptcha.lastIndexOf(s)
+    ];
+
+  return { msg: captchaString, value: answerString };
+}
+
+export const DeleteSpaces = (str: string) => str.split(' ').join('');
+
+// TODO
+export function GetObjectKeys(enums: object): string[] {
+  let keys = [];
+  for (const key in enums) keys.push(key);
+  return keys;
+}
+
+export async function EditMessage(
+  message:
+    | discord.Snowflake
+    | discord.Message
+    | discord.GuildMemberMessage
+    | null
+    | undefined,
+  text: string | discord.Embed | null | undefined,
+  channel?: discord.Snowflake
+): Promise<discord.Message | undefined> {
+  if (
+    text === undefined ||
+    text === null ||
+    message === undefined ||
+    message === null
+  )
+    return undefined;
+
+  let _message: discord.Message | undefined | null;
+  if (
+    message instanceof discord.GuildMemberMessage ||
+    message instanceof discord.Message
+  ) {
+    _message = message;
+  } else {
+    await discord
+      .getGuildTextChannel(channel as discord.Snowflake)
+      .then(async (c) => {
+        try {
+          _message = await c?.getMessage(message as discord.Snowflake);
+        } catch (_) {}
+      });
+  }
+
+  if (_message?.author.id !== Settings.pylonId || _message === null)
+    return undefined;
+
+  if (text instanceof discord.Embed)
+    return await _message?.edit(text as discord.Embed);
+  else return await _message?.edit(text as string);
+}
+
+export async function SendMessage(
+  were:
+    | discord.Snowflake
+    | discord.Message
+    | discord.GuildMemberMessage
+    | discord.GuildTextChannel
+    | null
+    | undefined,
+  message:
+    | string
+    | discord.Embed
+    | discord.Message.IOutgoingMessageOptions
+    | null
+    | undefined,
+  deleteTime?: number
+): Promise<discord.Message | undefined> {
+  if (
+    were === undefined ||
+    were === null ||
+    message === undefined ||
+    message == null
+  )
+    return undefined;
+
+  let sendMessageChannel: discord.GuildTextChannel | undefined;
+  if (were instanceof discord.GuildTextChannel) {
+    sendMessageChannel = were;
+  } else if (
+    were instanceof discord.GuildMemberMessage ||
+    were instanceof discord.Message
+  ) {
+    sendMessageChannel = (await were.getChannel()) as discord.GuildTextChannel;
+  } else {
+    await discord
+      .getGuildTextChannel(were as discord.Snowflake)
+      .then(async (c) => (sendMessageChannel = c as discord.GuildTextChannel));
+  }
+
+  const msg:
+    | discord.Message
+    | undefined = await sendMessageChannel?.sendMessage(
+    (message as unknown) as discord.Message.OutgoingMessageArgument<
+      discord.Message.OutgoingMessageOptions
+    >
+  );
+
+  await SaveClearMessages(sendMessageChannel?.id, msg?.id);
+
+  if (deleteTime !== undefined)
+    setTimeout(() => msg?.delete(), deleteTime > 30000 ? 28000 : deleteTime);
+
+  return msg;
+}
+
+export function DateString(notbox?: boolean, shift?: number): string {
+  const date: Date = new Date(Date.now() + (shift ?? 0));
+  const _box = notbox ? '' : '`';
+  return `${_box}[${date.getDate()}.${date.getMonth() +
+    1}.${date.getUTCFullYear()} - ${date
+    .getHours()
+    .toString()
+    .padStart(2, '0')}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}:${date
+    .getSeconds()
+    .toString()
+    .padStart(2, '0')}]${_box}`;
+}
+
+export function TimeString(notbox?: boolean, shift?: number): string {
+  const date: Date = new Date(Date.now() + (shift ?? 0));
+  const _box = notbox ? '' : '`';
+  return `${_box}[${date
+    .getHours()
+    .toString()
+    .padStart(2, '0')}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}:${date
+    .getSeconds()
+    .toString()
+    .padStart(2, '0')}]${_box}`;
 }
 
 // help msg
@@ -31,12 +185,12 @@ export async function HelpMsg(
   }
 
   // cmds which are in help and for this permission
-  const possibleCmds: Array<Definitions.command> = Settings.cmds
+  const possibleCmds: Definitions.command[] = Settings.cmds
     .filter((c) => c.inHelp && c.permLvl <= permissionLvl!)
-    .sort((a, b) => a.permLvl - b.permLvl);
+    .sort((a, b) => (a.permLvl as number) - (b.permLvl as number));
 
   // get the cmds for the given page
-  let commandsArray: Array<Definitions.command> = [];
+  let commandsArray: Definitions.command[] = [];
   for (let i: number = 0; i < Settings.nrElementsPage; ++i)
     commandsArray[i] = possibleCmds[i + pageNr * Settings.nrElementsPage];
 
@@ -67,7 +221,7 @@ export async function HelpMsg(
       value:
         ((cmd.permLvl ?? 0) == 0
           ? `[@everyone] `
-          : `[<@&${Settings.RolePerms[cmd.permLvl ?? 0]}>] `) +
+          : `[<@&${Settings.RolePerms[(cmd.permLvl as number) ?? 0]}>] `) +
         `${cmd.description}\n${
           cmd.password ?? false ? ' Requires password!' : ''
         }`
@@ -83,38 +237,24 @@ export async function Log(
   title: string,
   message: string
 ): Promise<void> {
-  await discord
-    .getGuildTextChannel(Settings.Channels.BOT)
-    .then(async (channel) => {
-      await channel?.sendMessage(
-        new discord.Embed({
-          color: color,
-          title: title,
-          description: message,
-          timestamp: new Date().toISOString()
-        })
-      );
-    });
-}
-
-export async function ClearMessages(
-  messageId: string,
-  channelId: string
-): Promise<void> {
-  let messages: string[] =
-    (await Definitions.KV.get(`messages-${channelId}`)) ?? [];
-  messages.push(messageId);
-  while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
-
-  await Definitions.KV.put(`messages-${channelId}`, messages);
+  await SendMessage(
+    Settings.Channels.BOT,
+    new discord.Embed({
+      color: color,
+      title: title,
+      description: message,
+      timestamp: new Date().toISOString()
+    })
+  );
 }
 
 // GHC Embeds
 export async function GHCEmbed(nr: number): Promise<discord.Embed> {
   const guild: discord.Guild = await discord.getGuild();
   const Owner: discord.GuildMember | null = await guild?.getMember(
-    await guild.ownerId
+    guild.ownerId
   );
+
   const aMSG: discord.Embed = new discord.Embed({
     color: Settings.Color.DEFAULT,
     timestamp: new Date().toISOString(),
@@ -138,11 +278,8 @@ export async function GHCEmbed(nr: number): Promise<discord.Embed> {
   });
 
   // add all fields to the embed from the settings.array
-  if ((Settings.GHC_MSGS[nr].Fields ?? undefined) !== undefined) {
-    for await (let f of Settings.GHC_MSGS[nr].Fields!) {
-      aMSG.addField(f);
-    }
-  }
+  if ((Settings.GHC_MSGS[nr].Fields ?? undefined) !== undefined)
+    for await (let f of Settings.GHC_MSGS[nr].Fields!) aMSG.addField(f);
 
   return aMSG;
 }
@@ -153,16 +290,17 @@ export async function OnError(
   arg?: any
 ): Promise<void> {
   console.log(msg.command);
-  msg.message.reply(
+  await SendMessage(
+    msg.message,
     new discord.Embed({
       color: Settings.Color.ERROR,
       title: 'Error',
       description: `${msg.message.member.toMention()} An error occured!\nHere the arguments you need: ${
-        // @ts-ignore
-        msg.command.options.description
+        (msg.command as any).options.description
       }`
     })
   );
+
   if (!msg) {
     console.log('Error1');
     return;
@@ -171,37 +309,130 @@ export async function OnError(
   console.log('Error2');
 }
 
-// delete msg after X milliseconds
-export async function delMsg(
-  msg: discord.Message | discord.Channel,
-  duration: number
+// save message ids
+export async function SaveClearMessages(
+  channelId: discord.Snowflake | undefined,
+  messageId: discord.Snowflake | undefined
 ): Promise<void> {
-  setTimeout(
-    async () => await msg?.delete(),
-    duration < 20000 ? duration : 19000
-  );
+  if (messageId === undefined || channelId === undefined) return;
+
+  let messages: discord.Snowflake[] =
+    (await BetterKV.get<discord.Snowflake[]>(
+      `messages-${channelId}`,
+      'clearcmd'
+    )) ?? [];
+
+  messages.push(messageId);
+  while (JSON.stringify(messages).length > 8192) messages.splice(0, 1);
+
+  await BetterKV.save(`messages-${channelId}`, messages, 'clearcmd');
 }
 
-export async function getPwd(pwd?: string): Promise<string | boolean> {
-  const cPwd: string | undefined = await Definitions.KV.get<string>(`pwd`);
+function TimeCalculator(
+  time: string,
+  size:
+    | 'ns'
+    | 'μs'
+    | 'ms'
+    | 's'
+    | 'min'
+    | 'h'
+    | 'd'
+    | 'w'
+    | 'mth'
+    | 'y'
+    | 'a'
+    | 'dec'
+    | 'cen'
+): number | undefined {
+  if (
+    time
+      .split('')
+      .some(
+        (s) =>
+          ![
+            '0',
+            '1',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+            '.',
+            ':'
+          ].includes(s)
+      )
+  )
+    return;
 
-  if (cPwd === undefined) return false;
-  if (pwd !== undefined) return cPwd === pwd;
-  console.log('k');
-  return cPwd;
-}
-
-// get the size in bytes of an object saved as JSON
-const GetSize = async (data: any) => JSON.stringify(data).length;
-
-// get size in bytes from a key in KV
-async function GetKeySize(key: string): Promise<number | undefined> {
-  let value: any = await Definitions.KV.get(key);
-  if (value !== undefined && value !== null) {
-    return JSON.stringify(value).length;
-  } else {
-    return undefined;
+  if (!time.includes(':')) {
+    if (isNaN(Number.parseFloat(time))) return;
+    else return Number.parseFloat(time) * Settings.timeUnits[size];
   }
+
+  const times: string[] = time.split(':');
+
+  const firstTime: number = Number.parseInt(times[0]!);
+  let secondTime: number = Number.parseInt(times[1]!);
+
+  if (times.length !== 2 || isNaN(firstTime) || isNaN(secondTime)) return;
+
+  if (times[1].toString().length < 2) secondTime *= 10;
+  else
+    while (secondTime.toString().length > 2)
+      secondTime = Number.parseInt(secondTime / 10 + '');
+
+  if (size === 'min')
+    return (
+      firstTime * Settings.timeUnits['min'] +
+      secondTime * Settings.timeUnits['s']
+    );
+  if (size === 'h')
+    return (
+      firstTime * Settings.timeUnits['h'] +
+      secondTime * Settings.timeUnits['min']
+    );
+
+  return;
+}
+
+export function CustomTimeStringToMS(time?: string): number | undefined {
+  if (time === undefined) return;
+
+  time = time
+    .split(' ')
+    .join('')
+    .toLowerCase();
+
+  for (const key in Settings.timeUnitsAlliases) {
+    let finalTime: number | undefined;
+
+    finalTime = TimeCalculator(time.replace(key, ''), key as any);
+    if (finalTime !== undefined) return finalTime;
+
+    for (const keys of Settings.timeUnitsAlliases[key as 'ms']) {
+      if (keys.includes('(s)')) {
+        finalTime = TimeCalculator(
+          time.replace(keys.replace('(s)', 's'), ''),
+          key as any
+        );
+        if (finalTime !== undefined) return finalTime;
+        finalTime = TimeCalculator(
+          time.replace(keys.replace('(s)', ''), ''),
+          key as any
+        );
+        if (finalTime !== undefined) return finalTime;
+      } else {
+        finalTime = TimeCalculator(time.replace(keys, ''), key as any);
+        if (finalTime !== undefined) return finalTime;
+      }
+    }
+  }
+
+  return;
 }
 
 // check if two objects are the same
@@ -234,7 +465,7 @@ function isEquivalent(a: any, b: any): boolean {
 // check if two objects are the same but not strictly since b has to have all properties of a but not the otherway around
 function hasProperties(a: any, b: any): boolean {
   // Create arrays of property names
-  const aProps: Array<string> = Object.getOwnPropertyNames(a);
+  const aProps: string[] = Object.getOwnPropertyNames(a);
 
   for (var i = 0; i < aProps.length; i++) {
     let propName: string = aProps[i];
