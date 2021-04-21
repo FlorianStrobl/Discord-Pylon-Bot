@@ -1,7 +1,4 @@
-import * as Definitions from '../Main/definitions';
 import * as Settings from '../Main/settings';
-import * as Functions from '../Main/functions';
-import * as Database from '../Main/database';
 
 export async function RoleSlashCommand(
   msg: discord.interactions.commands.SlashCommandInteraction,
