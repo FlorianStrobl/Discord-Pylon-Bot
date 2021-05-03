@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.2
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.3
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -52,6 +52,24 @@ export async function ConvertDBToNativeKV(
 
   return true;
 }
+
+export async function NamespaceToOtherNamespace(
+  startNamespace: string,
+  newtNamespace: string
+): Promise<boolean> {
+  try {
+    const data: [string, pylon.Json][] = await getEntries(startNamespace);
+    for await (const [key, value] of data) {
+      await save(key, value, newtNamespace);
+    }
+    await clear(true, startNamespace);
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
+
+  return true;
+}
 // #endregion
 
 // #region extern functions
@@ -74,7 +92,7 @@ export async function save(
 
   const KV: pylon.KVNamespace = await getKV(namespace);
   let size: number = await getDBKeySize(KV.namespace);
-  let savedData: object;
+  let savedData: object | any;
 
   try {
     // check if key is already in some db key and change the value. return true if so
@@ -82,21 +100,21 @@ export async function save(
       savedData = ((await KV.get(`database_${i}`)) ?? {}) as object;
 
       // search data in current db key
-      const cvalue: pylon.Json = (savedData as any)[key];
+      const cvalue: pylon.Json | undefined = savedData[key];
 
       if (cvalue !== undefined) {
         if (ifNotExist === true) return false;
 
-        (savedData as any)[key] = value; // change value of existing data in local array
+        savedData[key] = value; // change value of existing data in local array
 
         if ((await getSize(savedData)) <= maxByteSize) {
-          await KV.put(`database_${i}`, savedData as any); // total size is under 8196 so save in current key
+          await KV.put(`database_${i}`, savedData); // total size is under 8196 so save in current key
         } else {
           // too big for current key => delete object from current key and saving it as new
           try {
-            delete (savedData as any)[key];
+            delete savedData[key];
           } catch (_) {}
-          await KV.put(`database_${i}`, savedData as any);
+          await KV.put(`database_${i}`, savedData);
           //await dbKeyOrder(KV.namespace);
           await save(key, cvalue, KV.namespace); // ~~this should be pretty rare so no real performance lost~~
         }
@@ -110,7 +128,7 @@ export async function save(
       savedData = ((await KV.get(`database_${i}`)) ?? {}) as any;
 
       // saving the data
-      (savedData as any)[key] = value;
+      savedData[key] = value;
 
       if ((await getSize(savedData)) <= maxByteSize) {
         // size check for current key
@@ -118,6 +136,8 @@ export async function save(
         return true;
       }
     }
+
+    console.log('executed');
 
     // no db key had space and key didn't exist yet => new db key is cerated and object saved there
     ++size;
