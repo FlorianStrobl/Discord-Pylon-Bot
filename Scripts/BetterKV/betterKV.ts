@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.4
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.4.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -20,7 +20,7 @@ export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
   defaultNamespace
 );
 
-// #region compatibility functions
+// #region compatibility functions DO NOT WORK RIGHT NOW
 export async function ConvertOldDBToNewDB(
   namespace?: string | string[]
 ): Promise<boolean | boolean[]> {
@@ -38,17 +38,20 @@ export async function ConvertOldDBToNewDB(
 }
 
 export async function ConvertDBToNativeKV(
-  namespace?: string | string[]
-): Promise<boolean | boolean[]> {
-  if (Array.isArray(namespace)) {
-    // array so just do this function recursively
-    let workedForAll: boolean[] = [];
-    for await (const ns of namespace)
-      workedForAll.push((await ConvertDBToNativeKV(ns)) as boolean);
-    return workedForAll;
-  }
-
+  namespace?: string
+): Promise<boolean> {
   const rawData: object = await getRawData(namespace);
+
+  try {
+    if ((await clear(true, namespace)) === false) return false;
+
+    for await (const [key, value] of rawData as any) {
+      await (await getKV(namespace)).put(key, value);
+    }
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
 
   return true;
 }
@@ -78,11 +81,12 @@ export async function save(
   key: string | number,
   value: pylon.Json,
   namespace?: string,
-  ifNotExist?: boolean
+  saveIfNotExist?: boolean,
+  byteLimitPerKey: number = maxByteSize
 ): Promise<boolean> {
   // validate inputs
   if (
-    (await getSize(value)) > maxByteSize ||
+    (await getSize(value)) > byteLimitPerKey ||
     key == null ||
     key === 'databaseKeySize'
   )
@@ -103,11 +107,11 @@ export async function save(
       const cvalue: pylon.Json | undefined = savedData[key];
 
       if (cvalue !== undefined) {
-        if (ifNotExist === true) return false;
+        if (saveIfNotExist === true) return false;
 
         savedData[key] = value; // change value of existing data in local array
 
-        if ((await getSize(savedData)) <= maxByteSize) {
+        if ((await getSize(savedData)) <= byteLimitPerKey) {
           await KV.put(`database_${i}`, savedData); // total size is under 8196 so save in current key
         } else {
           // too big for current key => delete object from current key and saving it as new
@@ -130,22 +134,14 @@ export async function save(
       // saving the data
       savedData[key] = value;
 
-      if ((await getSize(savedData)) <= maxByteSize) {
-        console.log('try exec', JSON.stringify(savedData).length, i);
-
-        try {
-          // size check for current key
-          await KV.put(`database_${i}`, savedData); // current key has space => data is saved in this db key
-        } catch (x) {
-          console.log('THIS IS THE ERROR', x);
-          return false;
-        }
-
+      if ((await getSize(savedData)) <= byteLimitPerKey) {
+        // size check for current key
+        await KV.put(`database_${i}`, savedData); // current key has space => data is saved in this db key
         return true;
       }
     }
 
-    if (JSON.stringify({ [key]: value }).length <= maxByteSize) {
+    if (JSON.stringify({ [key]: value }).length <= byteLimitPerKey) {
       // no db key had space and key didn't exist yet => new db key is cerated and object saved there
       ++size;
       await KV.put(`databaseKeySize`, size);
@@ -622,7 +618,7 @@ async function filterObjValues(
 /* Documentation:
  * The functions are:
  *
- * save(key: string | number, value: pylon.Json, namespace?: string, ifNotExist?: boolean): Promise<boolean>;
+ * save(key: string | number, value: pylon.Json, namespace?: string, saveIfNotExist?: boolean, byteLimitPerKey: number = 8196): Promise<boolean>;
  * transact(key: string | number | (string | number)[], edit: (value: pylon.Json | undefined) => pylon.Json, namespace?: string): Promise<boolean | boolean[]>;
  * duplicate(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
  * changeKey(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
