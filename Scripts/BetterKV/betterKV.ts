@@ -133,10 +133,14 @@ export async function save(
       if ((await getSize(savedData)) <= maxByteSize) {
         console.log('try exec', JSON.stringify(savedData).length, i);
 
-        // size check for current key
-        await KV.put(`database_${i}`, savedData as any); // current key has space => data is saved in this db key
+        try {
+          // size check for current key
+          await KV.put(`database_${i}`, savedData as any); // current key has space => data is saved in this db key
+        } catch (x) {
+          console.log('THIS IS THE ERROR', x);
+          return false;
+        }
 
-        console.log('try exec 2', JSON.stringify(savedData).length);
         return true;
       }
     }
