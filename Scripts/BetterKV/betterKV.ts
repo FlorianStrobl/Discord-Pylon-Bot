@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.4
+// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.3.4 CUTTED VERSION
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -124,6 +124,7 @@ export async function save(
     }
 
     // key is not in current database => try to save in an existing db key
+    /*
     for (let i: number = 0; i <= size; ++i) {
       savedData = ((await KV.get(`database_${i}`)) ?? {}) as any;
 
@@ -135,7 +136,7 @@ export async function save(
 
         try {
           // size check for current key
-          await KV.put(`database_${i}`, savedData as any); // current key has space => data is saved in this db key
+          await KV.put(`database_${i}`, savedData); // current key has space => data is saved in this db key
         } catch (x) {
           console.log('THIS IS THE ERROR', x);
           return false;
@@ -144,6 +145,7 @@ export async function save(
         return true;
       }
     }
+    */
 
     if (JSON.stringify({ [key]: value }).length <= maxByteSize) {
       // no db key had space and key didn't exist yet => new db key is cerated and object saved there
