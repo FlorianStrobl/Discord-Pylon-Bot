@@ -95,8 +95,6 @@ export async function save(
   let savedData: object | any;
 
   try {
-    console.log('executed 1');
-
     // check if key is already in some db key and change the value. return true if so
     for (let i: number = 0; i <= size; ++i) {
       savedData = ((await KV.get(`database_${i}`)) ?? {}) as object;
@@ -125,8 +123,6 @@ export async function save(
       }
     }
 
-    console.log('executed 2');
-
     // key is not in current database => try to save in an existing db key
     for (let i: number = 0; i <= size; ++i) {
       savedData = ((await KV.get(`database_${i}`)) ?? {}) as any;
@@ -135,13 +131,13 @@ export async function save(
       savedData[key] = value;
 
       if ((await getSize(savedData)) <= maxByteSize) {
+        console.log('try exec', JSON.stringify(savedData).length);
+
         // size check for current key
         await KV.put(`database_${i}`, savedData as any); // current key has space => data is saved in this db key
         return true;
       }
     }
-
-    console.log('executed 3');
 
     if (JSON.stringify({ [key]: value }).length <= maxByteSize) {
       // no db key had space and key didn't exist yet => new db key is cerated and object saved there
