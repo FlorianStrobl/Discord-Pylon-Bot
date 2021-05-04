@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-04.2021 - Version 2.4.0
+// Florian Crafter (ClashCrafter#0001) - 02-05.2021 - Version 2.5.0
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -21,45 +21,25 @@ export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
 );
 
 type worked = boolean;
+type error = boolean;
+type key = string | number;
 
 // #region compatibility functions DO NOT WORK RIGHT NOW
-export async function ConvertOldDBToNewDB(
-  namespace?: string
-): Promise<boolean> {
+export async function ConvertOldDBToNewDB(namespace?: string): Promise<worked> {
   const rawData: object = await getRawData(namespace);
 
   return true;
 }
 
-export async function ConvertDBToNativeKV(
-  namespace?: string
-): Promise<boolean> {
+export async function ConvertDBToNativeKV(namespace?: string): Promise<worked> {
   const rawData: object = await getRawData(namespace);
 
   try {
-    if ((await clear(true, namespace)) === false) return false;
+    if ((await clear(namespace)) === false) return false;
 
     for await (const [key, value] of rawData as any) {
       await (await getKV(namespace)).put(key, value);
     }
-  } catch (error) {
-    console.log(error);
-    return false;
-  }
-
-  return true;
-}
-
-export async function NamespaceToOtherNamespace(
-  startNamespace: string,
-  newtNamespace: string
-): Promise<boolean> {
-  try {
-    const data: [string, pylon.Json][] = await getEntries(startNamespace);
-    for await (const [key, value] of data) {
-      await save(key, value, newtNamespace);
-    }
-    await clear(true, startNamespace);
   } catch (error) {
     console.log(error);
     return false;
@@ -72,22 +52,23 @@ export async function NamespaceToOtherNamespace(
 // #region extern functions
 // save a value to a key
 export async function save(
-  key: string | number,
+  key: key,
   value: pylon.Json,
   namespace?: string,
-  overwriteIfExist?: boolean
+  overwriteIfExist: boolean = true
 ): Promise<worked> {
   // validate inputs
-  key = key.toString();
   if (
     value === undefined ||
     (await getSize(value)) > maxByteSize ||
     key === null ||
     key === undefined ||
     key === 'databaseKeySize' ||
-    key.startsWith('database_')
+    (typeof key === 'string' && key.startsWith('database_'))
   )
     return false;
+
+  key = key.toString();
 
   const KV: pylon.KVNamespace = await getKV(namespace);
   let size: number = await getDBKeySize(KV.namespace);
@@ -102,6 +83,8 @@ export async function save(
       const cvalue: pylon.Json | undefined = savedData[key];
 
       if (cvalue !== undefined) {
+        // value does exist
+
         if (overwriteIfExist === false) return false;
 
         savedData[key] = value; // change value of existing data in local array
@@ -142,14 +125,14 @@ export async function save(
 }
 
 export async function transact(
-  key: string | number,
+  key: key,
   edit: (value: pylon.Json | undefined) => pylon.Json,
   namespace?: string,
   replaceUndefined?: boolean
 ): Promise<worked>;
 
 export async function transact(
-  key: (string | number)[],
+  key: key[],
   edit: (value: pylon.Json | undefined) => pylon.Json,
   namespace?: string,
   replaceUndefined?: boolean
@@ -157,10 +140,10 @@ export async function transact(
 
 // modify values on the fly
 export async function transact(
-  key: string | number | (string | number)[],
+  key: key | key[],
   edit: (value: pylon.Json | undefined) => pylon.Json,
   namespace?: string,
-  replaceUndefined?: boolean
+  replaceUndefined: boolean = false
 ): Promise<worked | worked[]> {
   if (Array.isArray(key)) {
     // array so just do this function recursively
@@ -178,11 +161,7 @@ export async function transact(
   // try get current data
   const oldValue: pylon.Json | undefined = await get(key, KV.namespace);
 
-  if (
-    (oldValue === undefined && replaceUndefined === false) ||
-    replaceUndefined === undefined
-  )
-    return false;
+  if (oldValue === undefined && replaceUndefined === false) return false;
 
   let newValue: pylon.Json = await edit(oldValue); // updated data locally
 
@@ -197,68 +176,42 @@ export async function transact(
 
 // duplicates an existing value to a new key
 export async function duplicate(
-  oldKey: string | number,
-  newKey: string | number,
+  oldKey: key,
+  newKey: key,
   namespace?: string,
-  overwriteIfNewKeyExist?: boolean,
+  overwriteIfNewKeyExist: boolean = false,
   edit?: (value: any) => pylon.Json
 ): Promise<worked> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
-
-  oldKey = oldKey.toString();
-  newKey = newKey.toString();
-
-  let value: pylon.Json | undefined = await get(oldKey, KV.namespace);
+  let value: pylon.Json | undefined = await get(oldKey, namespace);
   if (edit !== undefined) value = await edit(value); // edit the data if wanted
-
-  return await save(newKey, value!, KV.namespace, overwriteIfNewKeyExist); // save the new data
+  return await save(newKey, value!, namespace, overwriteIfNewKeyExist); // save the new data
 }
 
 // changes a key to an other key
 export async function changeKey(
-  oldKey: string | number,
-  newKey: string | number,
+  oldKey: key,
+  newKey: key,
   namespace?: string,
+  overwriteIfNewKeyExist: boolean = false,
   edit?: (value: any) => pylon.Json
 ): Promise<worked> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
-
-  oldKey = oldKey.toString();
-  newKey = newKey.toString();
-
-  // get the current value
-  let value: pylon.Json | undefined = await get(oldKey, KV.namespace);
-
-  if (
-    value === undefined ||
-    (await get(newKey, KV.namespace)) !== undefined ||
-    newKey === 'databaseKeySize' ||
-    newKey.startsWith('database_')
-  )
-    return false; // old key doesn't exist and/or new key exists already
-
+  let value: pylon.Json | undefined = await get(oldKey, namespace);
   if (edit !== undefined) value = await edit(value);
 
   // the new data with the new index
-  if ((await save(newKey, value, KV.namespace)) === false) return false;
-
+  if ((await save(newKey, value!, namespace, overwriteIfNewKeyExist)) === false)
+    return false;
   // deletes the old key and returns true if both worked
-  return await del(oldKey, KV.namespace);
+  return await del(oldKey, namespace);
 }
 
-export async function del(
-  key: string | number,
-  namespace?: string
-): Promise<worked>;
+export async function del(key: key, namespace?: string): Promise<worked>;
 
-export async function del(
-  key: (string | number)[],
-  namespace?: string
-): Promise<worked[]>;
+export async function del(key: key[], namespace?: string): Promise<worked[]>;
 
 // delete the key(s) and it's value(s)
 export async function del(
-  key: string | number | (string | number)[],
+  key: key | key[],
   namespace?: string
 ): Promise<worked | worked[]> {
   if (Array.isArray(key)) {
@@ -282,12 +235,10 @@ export async function del(
     // object is in current key
     if (savedData[key] !== undefined) {
       // found data and deleting it localy
-      try {
-        delete savedData[key];
-      } catch (_) {}
+      delete savedData[key];
 
       // update db key
-      await KV.put(`database_${i}`, savedData);
+      await saveInternalObject(savedData, i, KV.namespace);
 
       if (Object.keys(savedData).length === 0) await dbKeyOrder(KV.namespace); // db keys have to be sorted, because one of the db keys is now empty
 
@@ -299,19 +250,13 @@ export async function del(
   return false;
 }
 
-export async function exist(
-  key: string | number,
-  namespace?: string
-): Promise<boolean>;
+export async function exist(key: key, namespace?: string): Promise<boolean>;
 
-export async function exist(
-  key: (string | number)[],
-  namespace?: string
-): Promise<boolean[]>;
+export async function exist(key: key[], namespace?: string): Promise<boolean[]>;
 
 // check if an key exist
 export async function exist(
-  key: string | number | (string | number)[],
+  key: key | key[],
   namespace?: string
 ): Promise<boolean | boolean[]> {
   if (Array.isArray(key)) {
@@ -326,18 +271,18 @@ export async function exist(
 }
 
 export async function get<T extends pylon.Json>(
-  key: string | number,
+  key: key,
   namespace?: string
 ): Promise<T | undefined>;
 
 export async function get<T extends pylon.Json>(
-  key: (string | number)[],
+  key: key[],
   namespace?: string
 ): Promise<T[] | undefined>;
 
 // get the values from the key(s)
 export async function get<T extends pylon.Json>(
-  key: string | number | (string | number)[],
+  key: key | key[],
   namespace?: string
 ): Promise<T | T[] | undefined> {
   if (Array.isArray(key)) {
@@ -356,7 +301,7 @@ export async function get<T extends pylon.Json>(
   for (let i: number = 0; i <= size; ++i) {
     // search for key in the db key and return the value if it exists
     const savedData: pylon.JsonObject = await getInternalObject(i, namespace);
-    if ((savedData as any)[key] !== undefined) return (savedData as any)[key];
+    if (savedData[key] !== undefined) return (savedData as any)[key];
   }
 
   // key doesn't exist
@@ -412,13 +357,68 @@ export async function count(
   return (await getAllKeys(namespace, filter)).length;
 }
 
+// clears all the values from a namespace
 export async function clear(namespace?: string): Promise<worked> {
   await (await getKV(namespace)).clear();
   return true;
 }
 
-export async function errorChecking(namespace?: string): Promise<string> {
-  return 'true';
+// transfer one namespace to an other namespace (new ns has to be empty and the old one valid)
+export async function namespaceToOtherNamespace(
+  oldNamespace: string,
+  newNamespace: string
+): Promise<worked> {
+  const oldKV: pylon.KVNamespace = await getKV(oldNamespace);
+  const newKV: pylon.KVNamespace = await getKV(newNamespace);
+  const oldSize: number = await getDBKeySize(oldKV.namespace);
+
+  if (
+    (await oldKV.list()).length === 0 ||
+    (await newKV.list()).length !== 0 ||
+    (await errorChecking(oldKV.namespace)) === true
+  )
+    return false;
+
+  let worked: worked[] = [];
+  for (let i: number = 0; i <= oldSize; ++i)
+    if (
+      (await saveInternalObject(
+        await getInternalObject(i, oldKV.namespace),
+        i,
+        newKV.namespace
+      )) === true
+    ) {
+      worked.push(true);
+      await delInternalObject(i, oldKV.namespace);
+    } else worked.push(false);
+
+  if (oldSize !== 0) await newKV.put('databaseKeySize', oldSize);
+
+  try {
+    await oldKV.delete('databaseKeySize');
+  } catch (_) {}
+
+  return !worked.includes(false);
+}
+
+export async function errorChecking(namespace?: string): Promise<error> {
+  const KV: pylon.KVNamespace = await getKV(namespace);
+  const size: number = await getDBKeySize(KV.namespace);
+
+  if (Object.keys(await getInternalObject(size + 1, KV.namespace)).length !== 0)
+    return true;
+
+  for (let i: number = 0; i <= size; ++i)
+    if (
+      (await getInternalObject(i, KV.namespace)) === undefined &&
+      (i !== 0 || size !== 0)
+    )
+      return true;
+
+  for await (const key of await KV.list())
+    if (!key.startsWith('database_') && key !== 'databaseKeySize') return true;
+
+  return false;
 }
 // #endregion
 
@@ -436,7 +436,7 @@ async function getDBKeySize(namespace: string): Promise<number> {
 }
 
 async function getInternalObject(
-  index: string | number,
+  index: number,
   namespace?: string
 ): Promise<pylon.JsonObject> {
   const KV: pylon.KVNamespace = await getKV(namespace);
@@ -445,7 +445,7 @@ async function getInternalObject(
 
 async function saveInternalObject(
   value: pylon.Json,
-  index: string | number,
+  index: number,
   namespace?: string
 ): Promise<boolean> {
   const KV: pylon.KVNamespace = await getKV(namespace);
@@ -454,6 +454,19 @@ async function saveInternalObject(
     await KV.put(`database_${index}`, value);
     return true;
   } else return false;
+}
+
+async function delInternalObject(
+  index: key,
+  namespace?: string
+): Promise<boolean> {
+  const KV: pylon.KVNamespace = await getKV(namespace);
+  try {
+    await KV.delete(`database_${index}`);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 // correct empty db keys
@@ -601,19 +614,25 @@ async function filterObjValues(
 /* Documentation:
  * The functions are:
  *
- * save(key: string | number, value: pylon.Json, namespace?: string, saveIfNotExist?: boolean): Promise<boolean>;
- * transact(key: string | number | (string | number)[], edit: (value: pylon.Json | undefined) => pylon.Json, namespace?: string): Promise<boolean | boolean[]>;
- * duplicate(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
- * changeKey(oldKey: string | number, newKey: string | number, namespace?: string, edit?: (value: any) => pylon.Json): Promise<boolean>;
- * del(key: string | number | (string | number)[], namespace?: string): Promise<boolean | boolean[]>;
- * exist(key: string | number | (string | number)[], namespace?: string): Promise<boolean | boolean[]>;
- * get<T extends pylon.Json>(key: string | number | (string | number)[], namespace?: string): Promise<T | undefined>;
+ * type key = string | number;
+ * type worked = boolean;
+ * type error = boolean;
+ *
+ * save(key: key, value: pylon.Json, namespace?: string, saveIfNotExist: boolean = true): Promise<worked>;
+ * transact(key: key | key[], edit: (value: pylon.Json | undefined) => pylon.Json, namespace?: string, replaceUndefined: boolean = false): Promise<worked | worked[]>;
+ * duplicate(oldKey: key, newKey: key, namespace?: string, edit?: (value: any) => pylon.Json, overwriteIfNewKeyExist: boolean = false, edit?: (value: any) => pylon.Json): Promise<worked>;
+ * changeKey(oldKey: key, newKey: key, namespace?: string, edit?: (value: any) => pylon.Json): Promise<worked>;
+ * del(key: key | key[], namespace?: string): Promise<worked| worked[]>;
+ * exist(key: key | key[], namespace?: string): Promise<boolean | boolean[]>;
+ * get<T extends pylon.Json>(key: key | key[], namespace?: string): Promise<T | undefined>;
  * getAllValues<T extends pylon.Json>(namespace?: string, filter?: (value: any) => boolean): Promise<T>;
  * getAllKeys(namespace?: string, filter?: (value: any) => boolean): Promise<string[]>;
  * getEntries(namespace?: string): Promise<[string, pylon.Json][]>;
  * getRawData(namespace?: string): Promise<object>;
  * count(namespace?: string, filter?: (value: any) => boolean): Promise<number>;
- * clear(clearTheNamespace: boolean, namespace?: string): Promise<boolean>;
+ * clear(namespace?: string): Promise<worked>;
+ * namespaceToOtherNamespace(oldNamespace: string, newNamespace: string): Promise<worked>;
+ * errorChecking(namespace?: string): Promise<error>;
  *
  * ConvertOldDBToNewDB(namespace?: string | string[]): Promise<boolean | boolean[]>;
  * ConvertDBToNativeKV(namespace?: string | string[]): Promise<boolean | boolean[]>;
@@ -626,44 +645,46 @@ async function filterObjValues(
  */
 
 /* Benchmarks:
- import * as BetterKV from './betterKV';
+ // DO NOT SAVE ANYTHING IN THE NAMESPACE "benchmark ns" OR ELSE EVERYTHING IN THERE WILL BE DELETED
+
+ import * as BetterKV from './Extra/betterKV';
  new discord.command.CommandGroup().raw('PerfTest', async (m) => {
   let time = Date.now();
   const startTime = time;
-  await BetterKV.clear(true, 'benchmark');
+  await BetterKV.clear('benchmark ns');
   console.log('clear', Date.now() - time + 'ms');
 
-  await BetterKV.save('key 1', '.'.repeat(8000), 'benchmark');
-  await BetterKV.save('key 2', '.'.repeat(8000), 'benchmark');
-  await BetterKV.save('key 3', '.'.repeat(8000), 'benchmark');
-  await BetterKV.save('key 4', '.'.repeat(8000), 'benchmark');
-  await BetterKV.save('key 5', '.'.repeat(8000), 'benchmark');
+  await BetterKV.save('key 1', '.'.repeat(8000), 'benchmark ns');
+  await BetterKV.save('key 2', '.'.repeat(8000), 'benchmark ns');
+  await BetterKV.save('key 3', '.'.repeat(8000), 'benchmark ns');
+  await BetterKV.save('key 4', '.'.repeat(8000), 'benchmark ns');
+  await BetterKV.save('key 5', '.'.repeat(8000), 'benchmark ns');
   console.log('save', Date.now() - time + 'ms');
 
   time = Date.now();
   await BetterKV.get(
     ['key 1', 'key 2', 'key 3', 'key 4', 'key 5'],
-    'benchmark'
+    'benchmark ns'
   );
   console.log('get', Date.now() - time + 'ms');
 
   time = Date.now();
-  await BetterKV.getAllKeys('benchmark', (x) => x);
-  await BetterKV.getAllValues('benchmark', (x) => x);
-  await BetterKV.getEntries('benchmark');
-  await BetterKV.count('benchmark');
-  await BetterKV.getRawData('benchmark');
+  await BetterKV.getAllKeys('benchmark ns', (x) => x);
+  await BetterKV.getAllValues('benchmark ns', (x) => x);
+  await BetterKV.getEntries('benchmark ns');
+  await BetterKV.count('benchmark ns');
+  await BetterKV.getRawData('benchmark ns');
   console.log('get all', Date.now() - time + 'ms');
 
   time = Date.now();
   await BetterKV.del(
     ['key 1', 'key 2', 'key 3', 'key 4', 'key 5'],
-    'benchmark'
+    'benchmark ns'
   );
   console.log('del', Date.now() - time + 'ms');
 
   time = Date.now();
-  await BetterKV.clear(true, 'benchmark');
+  await BetterKV.clear('benchmark ns');
   console.log('clear', Date.now() - time + 'ms');
 
   console.log(
@@ -682,9 +703,10 @@ async function filterObjValues(
  */
 
 /* Test if everything works:
- * Use the command !Test (yes it is this prefix)
+ * Use the command !WorkTest, it could hit the 100ms limit, so just do it a few times
   
- import * as BetterKV from './betterKV';
+ // DO NOT SAVE ANYTHING IN THE NAMESPACE "test ns" OR ELSE EVERYTHING IN THERE WILL BE DELETED
+ import * as BetterKV from './Extra/betterKV';
  new discord.command.CommandGroup().raw('WorkTest', async (m) => {
   console.log(
     'Starting test!',
@@ -697,7 +719,7 @@ async function filterObjValues(
   // #region clear
   console.log(
     'CONTROL | TEST clear() 1:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await new pylon.KVNamespace('test ns').items()).length === 0
   );
   // #endregion
@@ -709,11 +731,11 @@ async function filterObjValues(
   );
   console.log(
     'TEST save() 2:',
-    (await BetterKV.save('a key', 'a second value', 'test ns', true)) === false
+    (await BetterKV.save('a key', 'a second value', 'test ns', false)) === false
   );
   console.log(
     'TEST save() 3:',
-    await BetterKV.save('a key', 'a second value', 'test ns', false)
+    await BetterKV.save('a key', 'a second value', 'test ns', true)
   );
   console.log(
     'TEST save() 4:',
@@ -742,7 +764,7 @@ async function filterObjValues(
   // CONTROL
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value', 'test ns'))
   );
@@ -786,7 +808,7 @@ async function filterObjValues(
   // CONTROL
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns'))
   );
 
@@ -800,7 +822,7 @@ async function filterObjValues(
     await BetterKV.duplicate('a key', 'new key', 'test ns')
   );
   console.log(
-    'TEST duplicate() 3:',
+    'TEST duplicate() 3:', // @ts-ignore
     await BetterKV.duplicate('a key', 'new key 2', 'test ns', (x) => '.' + x)
   );
   // #endregion
@@ -809,7 +831,7 @@ async function filterObjValues(
   // CONTROL
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns'))
   );
 
@@ -838,7 +860,7 @@ async function filterObjValues(
   // CONTROL
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns'))
   );
 
@@ -852,7 +874,7 @@ async function filterObjValues(
     await BetterKV.changeKey('a key', 'new key', 'test ns')
   );
   console.log(
-    'TEST changeKey() 3:',
+    'TEST changeKey() 3:', // @ts-ignore
     await BetterKV.changeKey('new key', 'a key', 'test ns', (x) => '.' + x)
   );
   // #endregion
@@ -861,7 +883,7 @@ async function filterObjValues(
   // CONTROL
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value', 'test ns')) &&
       (await BetterKV.save('a third key', 'a value', 'test ns'))
@@ -882,7 +904,7 @@ async function filterObjValues(
   // #region exist
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value', 'test ns'))
   );
@@ -902,7 +924,7 @@ async function filterObjValues(
   // #region get
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value 2', 'test ns'))
   );
@@ -925,7 +947,7 @@ async function filterObjValues(
   // #region getAllValues
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value 2', 'test ns'))
   );
@@ -957,7 +979,7 @@ async function filterObjValues(
   // #region getAllKeys
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value 2', 'test ns'))
   );
@@ -982,7 +1004,7 @@ async function filterObjValues(
   // #region getEntries
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value 2', 'test ns'))
   );
@@ -1002,7 +1024,7 @@ async function filterObjValues(
   // #region getRawData
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value 2', 'test ns'))
   );
@@ -1017,7 +1039,7 @@ async function filterObjValues(
   // #region count
   console.log(
     'CONTROL:',
-    (await BetterKV.clear(true, 'test ns')) &&
+    (await BetterKV.clear('test ns')) &&
       (await BetterKV.save('a key', 'a value', 'test ns')) &&
       (await BetterKV.save('a second key', 'a value 2', 'test ns'))
   );
@@ -1035,7 +1057,7 @@ async function filterObjValues(
 
   console.log('Duration', Date.now() - startTime + 'ms'); // Should be ~ 2000ms
 
-  await BetterKV.clear(true, 'test ns');
+  await BetterKV.clear('test ns');
  });
  */
 
