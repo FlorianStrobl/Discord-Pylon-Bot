@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-05.2021 - Version 2.5.0
+// Florian Crafter (ClashCrafter#0001) - 02-05.2021 - Version 2.5.1
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -312,7 +312,7 @@ export async function get<T extends pylon.Json>(
 export async function getAllValues<T extends pylon.Json>(
   namespace?: string,
   filter?: (value: any) => boolean
-): Promise<T> {
+): Promise<T[]> {
   let rawData: object = await getRawData(namespace);
   if (filter !== undefined)
     return Object.values(await filterObjValues(rawData, filter)) as any;
