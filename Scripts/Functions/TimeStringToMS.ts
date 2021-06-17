@@ -1,4 +1,4 @@
-// Florian Crafter - June 2021 - Version 1.1
+// Florian Crafter - June 2021 - Version 1.1a
 
 // strings have to be in a special format: number (can have "." or "," for decimal places) unit (units are defined below)
 // you can have as many of these string parts as you want
@@ -49,11 +49,15 @@ export function timeStringToMS(timeStr: string): number | undefined {
   // check values for errors
   if (values === undefined) return undefined;
 
-  // get the values in ms
-  let ms: number = 0;
-  for (let i = 0; i < values.length; ++i)
-    ms += getMs(values[i].numberPart, values[i].unit);
-
+  try {
+    // get the values in ms
+    let ms: number = 0;
+    for (let i = 0; i < values.length; ++i)
+      ms += getMs(values[i].numberPart, values[i].unit);
+  } catch (_) {
+   return undefined; 
+  }
+    
   return ms;
 }
 
@@ -88,7 +92,9 @@ function getUnitAndNumber(
   // error checking
   if (
     unit === '' ||
-    numberPart == '' ||
+    unit === undefined ||
+    numberPart === '' ||
+    numberPart === undefined ||
     units.length === 0 ||
     numberParts.length === 0 ||
     units.length !== numberParts.length
@@ -132,7 +138,7 @@ function getUnitAndNumber(
     }
 
     if (exactUnits.length !== units.length)
-      throw new Error("Couldn't find all units");
+      return undefined;
 
     return exactUnits;
   }
