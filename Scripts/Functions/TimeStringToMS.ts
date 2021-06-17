@@ -1,16 +1,13 @@
-// Florian Crafter - March 2021 - Version 1.0b
+// Florian Crafter - June 2021 - Version 1.1
 
-// CustomTimeStringToMS("5 min");
-// CustomTimeStringToMS("5min");
-// CustomTimeStringToMS("5 mins");
-// CustomTimeStringToMS("5:00 min");
-// CustomTimeStringToMS("5.5 min");
-// all output: 300000 (unit: milliseconds)
+// strings have to be in a special format: number (can have "." or "," for decimal places) unit (units are defined below)
+// you can have as many of these string parts as you want
+// minutes and hours are special cases wich support ":" for eg. "5:30min"
+// case and spaces are ignored
 
-// minutes and hours support ':' the rest doesn't. You can tho use everywere '.'
-// only ONE unit. "5:30 min" is good, "5 min 30 sec" is bad
+// timeStringToMS("5:30min 3minutes 2mins 44m 3.6m ") returns 3486000 (57min and 30+36sec)
 
-enum timeUnits {
+enum timeUnitValues {
   ns = 1e-6,
   μs = 1e-3,
   ms = 1,
@@ -26,9 +23,9 @@ enum timeUnits {
   cen = 1000 * 60 * 60 * 24 * 365 * 100
 }
 
-const timeUnitsAlliases = {
+const timeUnits: { [index: string]: string[] } = {
   ns: ['nanosecond(s)', 'nanosec(s)'],
-  μs: ['microsec(s)', 'microsecond(s)'],
+  μs: ['us', 'microsec(s)', 'microsecond(s)'],
   ms: ['millisecond(s)', 'millisec(s)'],
   s: ['sec(s)', 'second(s)'],
   min: ['minute(s)', 'm', 'min(s)'],
@@ -42,82 +39,123 @@ const timeUnitsAlliases = {
   cen: ['cent(s)', 'century', 'centuries']
 };
 
-export function CustomTimeStringToMS(time?: string): number | undefined {
-  if (time === undefined) return;
+export function timeStringToMS(timeStr: string): number | undefined {
+  // get values
+  const values:
+    | { numberPart: string; unit: string }[]
+    | undefined = getUnitAndNumber(timeStr);
 
-  time = time
+  // check values for errors
+  if (values === undefined) return undefined;
+
+  // get the values in ms
+  let ms: number = 0;
+  for (let i = 0; i < values.length; ++i)
+    ms += getMs(values[i].numberPart, values[i].unit);
+
+  return ms;
+}
+
+function getUnitAndNumber(
+  timeStr: string
+): { numberPart: string; unit: string }[] | undefined {
+  // returns the strings (s) and numbers (n) of a string formatted as: "nnssnnssnnss"
+  // /[0-9.,:]/g = regex for getting all the chars in a string which are equal to 0-9.,:
+  // /[^0-9.,:]/g = regex for getting all the chars in a string which are not equal to 0-9.,:
+
+  // format string basics (lowercase and no spaces)
+  timeStr = timeStr
+    .toLowerCase()
     .split(' ')
-    .join('')
-    .toLowerCase();
+    .join('');
 
-  for (const key in timeUnitsAlliases) {
-    let finalTime: number | undefined;
+  // get the numbers and units in a single string (and format the time strings)
+  const unit: string = timeStr.replace(/[0-9.,:]/g, ' ');
+  const numberPart: string = timeStr
+    .replace(/[^0-9.,:]/g, ' ')
+    .replace(',', '.');
 
-    finalTime = TimeCalculator(time.replace(key, ''), key as any);
-    if (finalTime !== undefined) return finalTime;
+  // get the numbers and units in an array and remove all the empty strings
+  let units: string[] = unit.split(' ').filter((str) => str !== '');
+  const numberParts: string[] = numberPart
+    .split(' ')
+    .filter((str) => str !== '');
 
-    for (const keys of timeUnitsAlliases[key as 'ms']) {
-      if (keys.includes('(s)')) {
-        finalTime = TimeCalculator(
-          time.replace(keys.replace('(s)', 's'), ''),
-          key as any
-        );
-        if (finalTime !== undefined) return finalTime;
-        finalTime = TimeCalculator(
-          time.replace(keys.replace('(s)', ''), ''),
-          key as any
-        );
-        if (finalTime !== undefined) return finalTime;
+  // replace eg. minute to min
+  units = getExactUnits(units);
+
+  // error checking
+  if (
+    unit === '' ||
+    numberPart == '' ||
+    units.length === 0 ||
+    numberParts.length === 0 ||
+    units.length !== numberParts.length
+  )
+    return undefined;
+
+  // get the two arrays in a single one
+  let ans: { numberPart: string; unit: string }[] = [];
+  for (let i = 0; i < units.length; ++i)
+    ans.push({ numberPart: numberParts[i], unit: units[i] });
+
+  // return the answer
+  return ans;
+
+  function getExactUnits(units: string[]): string[] {
+    let exactUnits: string[] = [];
+
+    // for each unit of the array
+    for (const unit of units) {
+      if (timeUnits[unit] !== undefined) {
+        // it's a main unit, just push it and skip the rest
+        exactUnits.push(unit);
+        continue;
       } else {
-        finalTime = TimeCalculator(time.replace(keys, ''), key as any);
-        if (finalTime !== undefined) return finalTime;
+        // it's not a main unit, so search the right one
+        // for each time unit
+        for (const timeUnit in timeUnits) {
+          // for each allias of a time unit
+          for (const timeUnitAllias of timeUnits[timeUnit]) {
+            if (
+              timeUnitAllias.replace('(s)', '') === unit ||
+              timeUnitAllias.replace('(s)', 's') === unit
+            ) {
+              // it's the unit, push the value and skip the rest
+              exactUnits.push(timeUnit);
+              continue;
+            }
+          }
+        }
       }
+    }
+
+    if (exactUnits.length !== units.length)
+      throw new Error("Couldn't find all units");
+
+    return exactUnits;
+  }
+}
+
+function getMs(number: string, unit: string): number {
+  // check for special case
+  if (number.includes(':')) {
+    switch (unit) {
+      case 'min':
+        return (
+          Number(number.split(':')[0]) * timeUnitValues['min'] +
+          Number(number.split(':')[1]) * timeUnitValues['s']
+        );
+      case 'h':
+        return (
+          Number(number.split(':')[0]) * timeUnitValues['h'] +
+          Number(number.split(':')[1]) * timeUnitValues['min']
+        );
+      default:
+        throw new Error('Used ":" with a unit which doesn\'t support it');
     }
   }
 
-  return;
-}
-
-function TimeCalculator(
-  time: string,
-  size:
-    | 'ns'
-    | 'μs'
-    | 'ms'
-    | 's'
-    | 'min'
-    | 'h'
-    | 'd'
-    | 'w'
-    | 'mth'
-    | 'y'
-    | 'a'
-    | 'dec'
-    | 'cen'
-): number | undefined {
-  if (time.split("").some((s) => !/[0-9.,:]/g.test(s))) return;
-
-  if (!time.includes(':')) {
-    if (isNaN(Number.parseFloat(time))) return;
-    else return Number.parseFloat(time) * timeUnits[size];
-  }
-
-  const times: string[] = time.split(':');
-
-  const firstTime: number = Number.parseInt(times[0]!);
-  let secondTime: number = Number.parseInt(times[1]!);
-
-  if (times.length !== 2 || isNaN(firstTime) || isNaN(secondTime)) return;
-
-  if (times[1].toString().length < 2) secondTime *= 10;
-  else
-    while (secondTime.toString().length > 2)
-      secondTime = Number.parseInt(secondTime / 10 + '');
-
-  if (size === 'min')
-    return firstTime * timeUnits['min'] + secondTime * timeUnits['s'];
-  if (size === 'h')
-    return firstTime * timeUnits['h'] + secondTime * timeUnits['min'];
-
-  return;
+  // default case
+  return Number(number) * timeUnitValues[unit as 'ns'];
 }
