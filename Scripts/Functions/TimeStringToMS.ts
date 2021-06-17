@@ -5,7 +5,7 @@
 // minutes and hours are special cases wich support ":" for eg. "5:30min"
 // case and spaces are ignored
 
-// timeStringToMS("5:30min 3minutes 2mins 44m 3.6m ") returns 3486000 (57min and 30+36sec)
+// timeStringToMS("5:30min 3minutes 2mins 44m 3.6m ") returns 3486000 (57min and 30+36sec = 3486000ms)
 
 enum timeUnitValues {
   ns = 1e-6,
