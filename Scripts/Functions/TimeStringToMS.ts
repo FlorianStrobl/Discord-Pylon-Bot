@@ -1,4 +1,4 @@
-// Florian Crafter - June 2021 - Version 1.1a
+// Florian Crafter - June 2021 - Version 1.1b
 
 // strings have to be in a special format: number (can have "." or "," for decimal places) unit (units are defined below)
 // you can have as many of these string parts as you want
@@ -49,15 +49,15 @@ export function timeStringToMS(timeStr: string): number | undefined {
   // check values for errors
   if (values === undefined) return undefined;
 
+  let ms: number = 0;
   try {
     // get the values in ms
-    let ms: number = 0;
     for (let i = 0; i < values.length; ++i)
       ms += getMs(values[i].numberPart, values[i].unit);
   } catch (_) {
-   return undefined; 
+    return undefined;
   }
-    
+
   return ms;
 }
 
@@ -81,7 +81,7 @@ function getUnitAndNumber(
     .replace(',', '.');
 
   // get the numbers and units in an array and remove all the empty strings
-  let units: string[] = unit.split(' ').filter((str) => str !== '');
+  let units: string[] | undefined = unit.split(' ').filter((str) => str !== '');
   const numberParts: string[] = numberPart
     .split(' ')
     .filter((str) => str !== '');
@@ -95,6 +95,7 @@ function getUnitAndNumber(
     unit === undefined ||
     numberPart === '' ||
     numberPart === undefined ||
+    units === undefined ||
     units.length === 0 ||
     numberParts.length === 0 ||
     units.length !== numberParts.length
@@ -109,7 +110,7 @@ function getUnitAndNumber(
   // return the answer
   return ans;
 
-  function getExactUnits(units: string[]): string[] {
+  function getExactUnits(units: string[]): string[] | undefined {
     let exactUnits: string[] = [];
 
     // for each unit of the array
@@ -137,8 +138,7 @@ function getUnitAndNumber(
       }
     }
 
-    if (exactUnits.length !== units.length)
-      return undefined;
+    if (exactUnits.length !== units.length) return undefined;
 
     return exactUnits;
   }
