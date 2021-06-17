@@ -8,21 +8,21 @@
 // timeStringToMS("5:30min 3minutes 2mins 44m 3.6m ") returns 3486000 (57min and 30+36sec = 3486000ms)
 // "1 week 3 days 12 hours" is the same as "1w3d12h"
 
-enum timeUnitValues {
-  ns = 1e-6,
-  μs = 1e-3,
-  ms = 1,
-  s = 1000,
-  min = 1000 * 60,
-  h = 1000 * 60 * 60,
-  d = 1000 * 60 * 60 * 24,
-  w = 1000 * 60 * 60 * 24 * 7,
-  mth = 1000 * 60 * 60 * 24 * 30,
-  y = 1000 * 60 * 60 * 24 * 365,
-  a = 1000 * 60 * 60 * 24 * 365.25,
-  dec = 1000 * 60 * 60 * 24 * 365 * 10,
-  cen = 1000 * 60 * 60 * 24 * 365 * 100
-}
+const timeUnitValues: { [index: string]: number } = {
+  ns: 1e-6,
+  μs: 1e-3,
+  ms: 1,
+  s: 1000,
+  min: 1000 * 60,
+  h: 1000 * 60 * 60,
+  d: 1000 * 60 * 60 * 24,
+  w: 1000 * 60 * 60 * 24 * 7,
+  mth: 1000 * 60 * 60 * 24 * 30,
+  y: 1000 * 60 * 60 * 24 * 365,
+  a: 1000 * 60 * 60 * 24 * 365.25,
+  dec: 1000 * 60 * 60 * 24 * 365 * 10,
+  cen: 1000 * 60 * 60 * 24 * 365 * 100
+};
 
 const timeUnits: { [index: string]: string[] } = {
   ns: ['nanosecond(s)', 'nanosec(s)'],
@@ -158,5 +158,5 @@ function getMs(number: string, unit: string): number {
   }
 
   // default case
-  return Number(number) * timeUnitValues[unit as 'ns'];
+  return Number(number) * timeUnitValues[unit];
 }
