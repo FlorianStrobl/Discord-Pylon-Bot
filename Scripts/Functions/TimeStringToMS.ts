@@ -6,6 +6,7 @@
 // case and spaces are ignored
 
 // timeStringToMS("5:30min 3minutes 2mins 44m 3.6m ") returns 3486000 (57min and 30+36sec = 3486000ms)
+// "1 week 3 days 12 hours" is the same as "1w3d12h"
 
 enum timeUnitValues {
   ns = 1e-6,
