@@ -154,9 +154,14 @@ function getMs(number: string, unit: string): number {
           Number(number.split(':')[1]) * timeUnitValues['s']
         );
       case 'h':
+        const seconds: number =
+          number.split(':').length === 3
+            ? Number(number.split(':')[2]) * timeUnitValues['s']
+            : 0;
         return (
           Number(number.split(':')[0]) * timeUnitValues['h'] +
-          Number(number.split(':')[1]) * timeUnitValues['min']
+          Number(number.split(':')[1]) * timeUnitValues['min'] +
+          seconds
         );
       default:
         throw new Error('Used ":" with a unit which doesn\'t support it');
