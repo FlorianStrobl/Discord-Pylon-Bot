@@ -1,4 +1,4 @@
-// Florian Crafter - June 2021 - Version 1.0
+// Florian Crafter - June 2021 - Version 1.1
 
 // timeStringToMS: https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/TimeStringToMS.ts
 // msToTimeString(time: number, format?: 'short' | 'medium' | 'long', spaces?: boolean);
@@ -10,6 +10,7 @@
 // msToTimeString(330000, "long", false) returns 5minutes30seconds
 // msToTimeString(330000, "long", true) returns 5 minutes 30 seconds
 // msToTimeString(301000, "long", true) returns 5 minutes 1 second
+// msToTimeString(301000, "long", true, 1) returns 5 minutes
 
 // same as timeStringToMS()
 const timeUnitValues: { [index: string]: number } = {
@@ -48,7 +49,8 @@ const fullTimeUnitNames: {
 export function msToTimeString(
   time: number,
   format?: 'short' | 'medium' | 'long',
-  spaces?: boolean
+  spaces?: boolean,
+  numberOfMostSignificantUnits?: number
 ): string | undefined {
   // format mode
   if (
@@ -62,6 +64,7 @@ export function msToTimeString(
 
   // the return string
   let timeStr: string = '';
+  let nr: number = 0;
 
   // go through all times beginning with the end
   for (let i = Object.keys(timeUnitValues).length; i >= 0; --i) {
@@ -73,6 +76,8 @@ export function msToTimeString(
     // current time
     let ctime: number = time / timeUnitValues[key];
     if (ctime >= 1) {
+      if ((numberOfMostSignificantUnits ?? 100) < ++nr) break;
+
       // format ctime
       ctime = Math.floor(ctime);
 
