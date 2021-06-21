@@ -1,5 +1,7 @@
 // Florian Crafter - June 2021 - Version 1.1b
 
+// msToTimeString: https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/msToTimeString.ts
+
 // strings have to be in a special format: number (can have "." or "," for decimal places) unit (units are defined below)
 // you can have as many of these string parts as you want
 // minutes and hours are special cases wich support ":" for eg. "5:30min"
