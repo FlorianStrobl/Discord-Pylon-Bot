@@ -84,7 +84,7 @@ export function msToTimeString(
       // unit
       timeStr +=
         fullTimeUnitNames[key][format] +
-        (ctime > 1 && format !== 'short' ? 's' : '');
+        (ctime !== 1 && format !== 'short' ? 's' : '');
       // space between timers
       timeStr += spaces === true ? ' ' : '';
 
