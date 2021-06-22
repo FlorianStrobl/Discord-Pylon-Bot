@@ -1,16 +1,17 @@
-// Florian Crafter - June 2021 - Version 1.1
+// Florian Crafter - June 2021 - Version 1.2
 
 // timeStringToMS: https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/TimeStringToMS.ts
 // msToTimeString(time: number, format?: 'short' | 'medium' | 'long', spaces?: boolean);
 
-// msToTimeString(330000, "short", false) returns 5m30s
-// msToTimeString(330000, "short", true) returns 5m 30s
-// msToTimeString(330000, "medium", false) returns 5mins30secs
-// msToTimeString(330000, "medium", true) returns 5 mins 30 secs
-// msToTimeString(330000, "long", false) returns 5minutes30seconds
-// msToTimeString(330000, "long", true) returns 5 minutes 30 seconds
-// msToTimeString(301000, "long", true) returns 5 minutes 1 second
-// msToTimeString(301000, "long", true, 1) returns 5 minutes
+// msToTimeString(330000, "short", false)        => 5m30s
+// msToTimeString(330000, "short", true) ....... => 5m 30s
+// msToTimeString(330000, "medium", false)       => 5mins30secs
+// msToTimeString(330000, "medium", true) ...... => 5 mins 30 secs
+// msToTimeString(330000, "long", false)         => 5minutes30seconds
+// msToTimeString(330000, "long", true) ........ => 5 minutes 30 seconds
+// msToTimeString(301000, "long", true)          => 5 minutes 1 second
+// msToTimeString(301000, "long", true, 1) ..... => 5 minutes
+// msToTimeString(301000, "long", true, 2, ", ") => 5 minutes, 1 second
 
 // same as timeStringToMS()
 const timeUnitValues: { [index: string]: number } = {
@@ -50,7 +51,8 @@ export function msToTimeString(
   time: number,
   format?: 'short' | 'medium' | 'long',
   spaces?: boolean,
-  numberOfMostSignificantUnits?: number
+  numberOfMostSignificantUnits?: number,
+  joinString?: string
 ): string | undefined {
   // format mode
   if (
@@ -61,6 +63,9 @@ export function msToTimeString(
 
   // space mode
   if (spaces === undefined) spaces = false;
+
+  // join string
+  if (joinString === undefined) joinString = ' ';
 
   // the return string
   let timeStr: string = '';
@@ -91,15 +96,16 @@ export function msToTimeString(
         fullTimeUnitNames[key][format] +
         (ctime !== 1 && format !== 'short' ? 's' : '');
       // space between timers
-      timeStr += spaces === true ? ' ' : '';
+      timeStr += spaces === true ? joinString : '';
 
       // format time
       time -= ctime * timeUnitValues[key];
     }
   }
 
-  // remove unwanted spaces
-  while (timeStr[timeStr.length - 1] === ' ') timeStr = timeStr.slice(0, -1);
+  // remove unwanted end string
+  while (timeStr.endsWith(joinString))
+    timeStr = timeStr.slice(0, -1 * joinString.length);
 
   // return the result
   if (timeStr === '') return undefined;
