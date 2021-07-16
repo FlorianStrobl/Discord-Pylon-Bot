@@ -4,7 +4,7 @@
 
 // strings have to be in a special format: number (can have "." or "," for decimal places) unit (units are defined below)
 // you can have as many of these string parts as you want
-// minutes and hours are special cases wich support ":" for eg. "5:30min"
+// minutes and hours are special cases wich support ":" for eg. "5:30min" (but only once)
 // case and spaces are ignored
 
 // timeStringToMS("5:30min 3minutes 2mins 44m 3.6m ") returns 3486000 (57min and 30+36sec = 3486000ms)
