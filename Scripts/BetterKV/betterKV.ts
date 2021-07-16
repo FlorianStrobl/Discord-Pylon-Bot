@@ -522,7 +522,7 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
 
 // get the size in bytes of an object saved as JSON string
 function getSize(data: any): number {
-  return new TextEncoder().encode(JSON.stringify(data)).length;
+  return JSON.stringify(data).length;
 }
 
 // converts an one dimensional object array to an object
