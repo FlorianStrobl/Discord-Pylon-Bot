@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-05.2021 - Version 2.5.1
+// Florian Crafter (ClashCrafter#0001) - 02-05.2021 - Version 2.5.2
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
@@ -23,6 +23,7 @@ export const Default_KV: pylon.KVNamespace = new pylon.KVNamespace(
 type worked = boolean;
 type error = boolean;
 type key = string | number;
+type value = pylon.Json;
 
 // #region compatibility functions DO NOT WORK RIGHT NOW
 export async function ConvertOldDBToNewDB(namespace?: string): Promise<worked> {
@@ -38,7 +39,7 @@ export async function ConvertDBToNativeKV(namespace?: string): Promise<worked> {
     if ((await clear(namespace)) === false) return false;
 
     for await (const [key, value] of rawData as any) {
-      await (await getKV(namespace)).put(key, value);
+      await getKV(namespace).put(key, value);
     }
   } catch (error) {
     console.log(error);
@@ -51,36 +52,40 @@ export async function ConvertDBToNativeKV(namespace?: string): Promise<worked> {
 
 // #region extern functions
 // save a value to a key
+/**
+ * Save a value in the Key-Value Storage.
+ *
+ * @param Key The name of the value. Use get("key") to get the value later.
+ * @param value The value you want to save. The hard limit is 8196bytes in a stringified form
+ */
 export async function save(
   key: key,
-  value: pylon.Json,
+  value: value,
   namespace?: string,
   overwriteIfExist: boolean = true
 ): Promise<worked> {
   // validate inputs
   if (
-    value === undefined ||
-    (await getSize(value)) > maxByteSize ||
     key === null ||
     key === undefined ||
-    key === 'databaseKeySize' ||
-    (typeof key === 'string' && key.startsWith('database_'))
+    value === undefined ||
+    getSize(value) > maxByteSize
   )
     return false;
 
   key = key.toString();
 
-  const KV: pylon.KVNamespace = await getKV(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
   let size: number = await getDBKeySize(KV.namespace);
   let savedData: pylon.JsonObject;
 
   try {
     // check if key is already in some db key and change the value. return true if so
     for (let i: number = 0; i <= size; ++i) {
-      savedData = await getInternalObject(i, KV.namespace);
+      savedData = (await getInternalObject(i, KV.namespace)) ?? {};
 
       // search data in current db key
-      const cvalue: pylon.Json | undefined = savedData[key];
+      const cvalue: value | undefined = savedData[key];
 
       if (cvalue !== undefined) {
         // value does exist
@@ -101,7 +106,7 @@ export async function save(
 
     // key is not in current database => try to save in an existing db key
     for (let i: number = 0; i <= size; ++i) {
-      savedData = await getInternalObject(i, KV.namespace);
+      savedData = (await getInternalObject(i, KV.namespace)) ?? {};
 
       // saving the data
       savedData[key] = value;
@@ -126,14 +131,14 @@ export async function save(
 
 export async function transact(
   key: key,
-  edit: (value: pylon.Json | undefined) => pylon.Json,
+  edit: (value: value | undefined) => value,
   namespace?: string,
   replaceUndefined?: boolean
 ): Promise<worked>;
 
 export async function transact(
   key: key[],
-  edit: (value: pylon.Json | undefined) => pylon.Json,
+  edit: (value: value | undefined) => value,
   namespace?: string,
   replaceUndefined?: boolean
 ): Promise<worked[]>;
@@ -141,7 +146,7 @@ export async function transact(
 // modify values on the fly
 export async function transact(
   key: key | key[],
-  edit: (value: pylon.Json | undefined) => pylon.Json,
+  edit: (value: value | undefined) => value,
   namespace?: string,
   replaceUndefined: boolean = false
 ): Promise<worked | worked[]> {
@@ -156,19 +161,19 @@ export async function transact(
 
   key = key.toString();
 
-  const KV: pylon.KVNamespace = await getKV(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
 
   // try get current data
-  const oldValue: pylon.Json | undefined = await get(key, KV.namespace);
+  const oldValue: value | undefined = await get(key, KV.namespace);
 
   if (oldValue === undefined && replaceUndefined === false) return false;
 
-  let newValue: pylon.Json = await edit(oldValue); // updated data locally
+  let newValue: value = await edit(oldValue); // updated data locally
 
   if (newValue === undefined) return false;
 
   // object is too big
-  if ((await getSize(newValue)) <= maxByteSize)
+  if (getSize(newValue) <= maxByteSize)
     return await save(key, newValue, KV.namespace);
   // updated object
   else return false;
@@ -180,9 +185,9 @@ export async function duplicate(
   newKey: key,
   namespace?: string,
   overwriteIfNewKeyExist: boolean = false,
-  edit?: (value: any) => pylon.Json
+  edit?: (value: any) => value
 ): Promise<worked> {
-  let value: pylon.Json | undefined = await get(oldKey, namespace);
+  let value: value | undefined = await get(oldKey, namespace);
   if (edit !== undefined) value = await edit(value); // edit the data if wanted
   return await save(newKey, value!, namespace, overwriteIfNewKeyExist); // save the new data
 }
@@ -193,9 +198,9 @@ export async function changeKey(
   newKey: key,
   namespace?: string,
   overwriteIfNewKeyExist: boolean = false,
-  edit?: (value: any) => pylon.Json
+  edit?: (value: any) => value
 ): Promise<worked> {
-  let value: pylon.Json | undefined = await get(oldKey, namespace);
+  let value: value | undefined = await get(oldKey, namespace);
   if (edit !== undefined) value = await edit(value);
 
   // the new data with the new index
@@ -225,12 +230,13 @@ export async function del(
 
   key = key.toString();
 
-  const KV: pylon.KVNamespace = await getKV(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
   const size: number = await getDBKeySize(KV.namespace);
 
   // go through every db key and search for the key
   for (let i: number = 0; i <= size; ++i) {
-    let savedData: pylon.JsonObject = await getInternalObject(i, namespace);
+    let savedData: pylon.JsonObject =
+      (await getInternalObject(i, namespace)) ?? {};
 
     // object is in current key
     if (savedData[key] !== undefined) {
@@ -270,37 +276,39 @@ export async function exist(
   return (await get(key, namespace)) !== undefined;
 }
 
-export async function get<T extends pylon.Json>(
+export async function get<T extends value>(
   key: key,
   namespace?: string
 ): Promise<T | undefined>;
 
-export async function get<T extends pylon.Json>(
+export async function get<T extends value>(
   key: key[],
   namespace?: string
 ): Promise<T[] | undefined>;
 
 // get the values from the key(s)
-export async function get<T extends pylon.Json>(
+export async function get<T extends value>(
   key: key | key[],
   namespace?: string
 ): Promise<T | T[] | undefined> {
   if (Array.isArray(key)) {
     // array so just do this function recursively
-    let values: (pylon.Json | undefined)[] = [];
+    // TODO, getRawData -> filter keys
+    let values: (value | undefined)[] = [];
     for await (const k of key) values.push(await get(k, namespace));
     return values as any;
   }
 
   key = key.toString();
 
-  const KV: pylon.KVNamespace = await getKV(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
   const size: number = await getDBKeySize(KV.namespace);
 
   // it is more optimized to go manually through the keys, than just doing GetAllValues() and searching there for the data
   for (let i: number = 0; i <= size; ++i) {
     // search for key in the db key and return the value if it exists
-    const savedData: pylon.JsonObject = await getInternalObject(i, namespace);
+    const savedData: pylon.JsonObject =
+      (await getInternalObject(i, namespace)) ?? {};
     if (savedData[key] !== undefined) return (savedData as any)[key];
   }
 
@@ -309,13 +317,13 @@ export async function get<T extends pylon.Json>(
 }
 
 // getting all the values
-export async function getAllValues<T extends pylon.Json>(
+export async function getAllValues<T extends value>(
   namespace?: string,
   filter?: (value: any) => boolean
 ): Promise<T[]> {
   let rawData: object = await getRawData(namespace);
   if (filter !== undefined)
-    return Object.values(await filterObjValues(rawData, filter)) as any;
+    return Object.values(filterObjValues(rawData, filter)) as any;
   else return Object.values(rawData) as any;
 }
 
@@ -326,27 +334,25 @@ export async function getAllKeys(
 ): Promise<string[]> {
   let rawData: object = await getRawData(namespace);
   if (filter !== undefined)
-    return Object.keys(await filterObjValues(rawData, filter));
+    return Object.keys(filterObjValues(rawData, filter));
   else return Object.keys(rawData);
 }
 
 // getting [key, values]
-export async function getEntries(
-  namespace?: string
-): Promise<[string, pylon.Json][]> {
+export async function getEntries(namespace?: string): Promise<[key, value][]> {
   return Object.entries(await getRawData(namespace));
 }
 
 // getting the raw data
 export async function getRawData(namespace?: string): Promise<object> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
   const size: number = await getDBKeySize(KV.namespace);
 
   let data: pylon.JsonObject[] = [];
   for (let i: number = 0; i <= size; ++i)
-    data = data.concat(await getInternalObject(i, namespace));
+    data = data.concat((await getInternalObject(i, namespace)) ?? {});
 
-  return await objArrToObj(data);
+  return objArrToObj(data);
 }
 
 // the number of keys saved
@@ -359,7 +365,7 @@ export async function count(
 
 // clears all the values from a namespace
 export async function clear(namespace?: string): Promise<worked> {
-  await (await getKV(namespace)).clear();
+  await getKV(namespace).clear();
   return true;
 }
 
@@ -368,8 +374,8 @@ export async function namespaceToOtherNamespace(
   oldNamespace: string,
   newNamespace: string
 ): Promise<worked> {
-  const oldKV: pylon.KVNamespace = await getKV(oldNamespace);
-  const newKV: pylon.KVNamespace = await getKV(newNamespace);
+  const oldKV: pylon.KVNamespace = getKV(oldNamespace);
+  const newKV: pylon.KVNamespace = getKV(newNamespace);
   const oldSize: number = await getDBKeySize(oldKV.namespace);
 
   if (
@@ -383,7 +389,7 @@ export async function namespaceToOtherNamespace(
   for (let i: number = 0; i <= oldSize; ++i)
     if (
       (await saveInternalObject(
-        await getInternalObject(i, oldKV.namespace),
+        (await getInternalObject(i, oldKV.namespace)) ?? {},
         i,
         newKV.namespace
       )) === true
@@ -402,10 +408,13 @@ export async function namespaceToOtherNamespace(
 }
 
 export async function errorChecking(namespace?: string): Promise<error> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
   const size: number = await getDBKeySize(KV.namespace);
 
-  if (Object.keys(await getInternalObject(size + 1, KV.namespace)).length !== 0)
+  if (
+    Object.keys((await getInternalObject(size + 1, KV.namespace)) ?? {})
+      .length !== 0
+  )
     return true;
 
   for (let i: number = 0; i <= size; ++i)
@@ -424,7 +433,7 @@ export async function errorChecking(namespace?: string): Promise<error> {
 
 // #region intern functions
 // get the KV for the namespace
-async function getKV(namespace?: string): Promise<pylon.KVNamespace> {
+function getKV(namespace?: string): pylon.KVNamespace {
   if (namespace !== undefined && namespace !== null)
     return new pylon.KVNamespace(namespace);
   else return Default_KV;
@@ -432,26 +441,23 @@ async function getKV(namespace?: string): Promise<pylon.KVNamespace> {
 
 // get number of db keys in this namespace
 async function getDBKeySize(namespace: string): Promise<number> {
-  return (await (await getKV(namespace)).get<number>(`databaseKeySize`)) ?? 0;
+  return (await getKV(namespace).get<number>(`databaseKeySize`)) ?? 0;
 }
 
 async function getInternalObject(
   index: number,
   namespace?: string
-): Promise<pylon.JsonObject> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
-  return (await KV.get(`database_${index}`)) ?? {};
+): Promise<pylon.JsonObject | undefined> {
+  return await getKV(namespace).get(`database_${index}`);
 }
 
 async function saveInternalObject(
-  value: pylon.Json,
+  value: value,
   index: number,
   namespace?: string
 ): Promise<boolean> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
-
-  if ((await getSize(value)) <= maxByteSize) {
-    await KV.put(`database_${index}`, value);
+  if (getSize(value) <= maxByteSize) {
+    await getKV(namespace).put(`database_${index}`, value);
     return true;
   } else return false;
 }
@@ -460,9 +466,8 @@ async function delInternalObject(
   index: key,
   namespace?: string
 ): Promise<boolean> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
   try {
-    await KV.delete(`database_${index}`);
+    await getKV(namespace).delete(`database_${index}`);
     return true;
   } catch (_) {
     return false;
@@ -471,9 +476,9 @@ async function delInternalObject(
 
 // correct empty db keys
 async function dbKeyOrder(namespace: string): Promise<boolean> {
-  const KV: pylon.KVNamespace = await getKV(namespace);
-  let size: number =
-    (await getDBKeySize(namespace)) === 0 ? -1 : await getDBKeySize(namespace);
+  const KV: pylon.KVNamespace = getKV(namespace);
+  let size: number = await getDBKeySize(namespace);
+  if (size === 0) return false;
 
   for (let i: number = 0; i <= size; ++i) {
     const data: pylon.JsonObject | undefined = await getInternalObject(
@@ -488,12 +493,12 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
       for (let y: number = i; y < size; ++y)
         await KV.put(
           `database_${y}`,
-          (await KV.get(`database_${y + 1}`)) ?? {}
+          (await getInternalObject(y + 1, KV.namespace)) ?? {}
         );
 
       try {
         // deletes empty key which is now the last one
-        await KV.delete(`database_${size}`);
+        await delInternalObject(size, KV.namespace);
       } catch (_) {}
 
       // decreases the size
@@ -516,25 +521,22 @@ async function dbKeyOrder(namespace: string): Promise<boolean> {
 }
 
 // get the size in bytes of an object saved as JSON string
-async function getSize(data: any): Promise<number> {
+function getSize(data: any): number {
   return new TextEncoder().encode(JSON.stringify(data)).length;
 }
 
 // converts an one dimensional object array to an object
-async function objArrToObj(objectArray: object[]): Promise<object> {
+function objArrToObj(objectArray: object[]): object {
   let nObject: { [key: string]: any } = {};
 
-  for await (const obj of objectArray)
-    for await (const [key, value] of Object.entries(obj)) nObject[key] = value;
+  for (const obj of objectArray)
+    for (const [key, value] of Object.entries(obj)) nObject[key] = value;
 
   return nObject;
 }
 
-async function filterObjValues(
-  obj: object,
-  filter: (value: any) => boolean
-): Promise<object> {
-  for await (const [key, value] of Object.entries(obj))
+function filterObjValues(obj: object, filter: (value: any) => boolean): object {
+  for (const [key, value] of Object.entries(obj))
     if (filter(value) === false) delete (obj as any)[key];
 
   return obj;
@@ -614,20 +616,21 @@ async function filterObjValues(
 /* Documentation:
  * The functions are:
  *
- * type key = string | number;
  * type worked = boolean;
  * type error = boolean;
+ * type key = string | number;
+ * type value = pylon.Json;
  *
- * save(key: key, value: pylon.Json, namespace?: string, saveIfNotExist: boolean = true): Promise<worked>;
- * transact(key: key | key[], edit: (value: pylon.Json | undefined) => pylon.Json, namespace?: string, replaceUndefined: boolean = false): Promise<worked | worked[]>;
- * duplicate(oldKey: key, newKey: key, namespace?: string, edit?: (value: any) => pylon.Json, overwriteIfNewKeyExist: boolean = false, edit?: (value: any) => pylon.Json): Promise<worked>;
- * changeKey(oldKey: key, newKey: key, namespace?: string, edit?: (value: any) => pylon.Json): Promise<worked>;
+ * save(key: key, value: value, namespace?: string, saveIfNotExist: boolean = true): Promise<worked>;
+ * transact(key: key | key[], edit: (value: value | undefined) => value, namespace?: string, replaceUndefined: boolean = false): Promise<worked | worked[]>;
+ * duplicate(oldKey: key, newKey: key, namespace?: string, edit?: (value: any) => value, overwriteIfNewKeyExist: boolean = false, edit?: (value: any) => value): Promise<worked>;
+ * changeKey(oldKey: key, newKey: key, namespace?: string, edit?: (value: any) => value): Promise<worked>;
  * del(key: key | key[], namespace?: string): Promise<worked| worked[]>;
  * exist(key: key | key[], namespace?: string): Promise<boolean | boolean[]>;
- * get<T extends pylon.Json>(key: key | key[], namespace?: string): Promise<T | undefined>;
- * getAllValues<T extends pylon.Json>(namespace?: string, filter?: (value: any) => boolean): Promise<T>;
+ * get<T extends value>(key: key | key[], namespace?: string): Promise<T | undefined>;
+ * getAllValues<T extends value>(namespace?: string, filter?: (value: any) => boolean): Promise<T[]>;
  * getAllKeys(namespace?: string, filter?: (value: any) => boolean): Promise<string[]>;
- * getEntries(namespace?: string): Promise<[string, pylon.Json][]>;
+ * getEntries(namespace?: string): Promise<[string, value][]>;
  * getRawData(namespace?: string): Promise<object>;
  * count(namespace?: string, filter?: (value: any) => boolean): Promise<number>;
  * clear(namespace?: string): Promise<worked>;
