@@ -1,16 +1,17 @@
 // Florian Crafter - June 2021 - Version 1.3
 
-// msToTimeString(330000, "short", false)        => 5m30s
-// msToTimeString(330000, "short", true) ....... => 5m 30s
-// msToTimeString(330000, "medium", false)       => 5mins30secs
-// msToTimeString(330000, "medium", true) ...... => 5 mins 30 secs
-// msToTimeString(330000, "long", false)         => 5minutes30seconds
-// msToTimeString(330000, "long", true) ........ => 5 minutes 30 seconds
-// msToTimeString(301000, "long", true)          => 5 minutes 1 second
-// msToTimeString(301000, "long", true, 1) ..... => 5 minutes
-// msToTimeString(301000, "long", true, 2, ", ") => 5 minutes, 1 second
+// msToTimeString(330000);                          // "5m 30s"
+// msToTimeString(330000, 'short', false, ' ', 15); //  "5m 30s"
 
-// same as timeStringToMS()
+// msToTimeString(330000, 'short');                 // "5m 30s"
+// msToTimeString(330000, 'medium');                // "5mins 30secs"
+// msToTimeString(330000, 'long');                  // "5minutes 30seconds"
+
+// msToTimeString(330000, 'short', true, ', ', 2);  // "5 m, 30 s"
+// msToTimeString(330000, 'short', false, '', 1);   // "5m"
+// msToTimeString(301000, 'long', true);            // "5 minutes 1 second"
+
+// same as in timeStringToMS.ts
 const timeUnitValues: { [index: string]: number } = {
   ns: 1e-6,
   μs: 1e-3,
@@ -51,45 +52,47 @@ export function msToTimeString(
   stringBetweenUnits: string = ' ',
   numberOfMostSignificantUnitsShown: number = 15
 ): string | undefined {
+  if (!Number.isFinite(time) || time <= 0) return undefined; // invalid input time
+
   // format mode
   if (format !== 'short' && format !== 'medium' && format !== 'long')
     format = 'short';
 
-  let timeStr: string = '';  // the return string
+  let timeStr: string = ''; // the return string
   let nr: number = 0;
 
   // go through all times beginning with the end
   for (let i = Object.keys(timeUnitValues).length; i >= 0; --i) {
     const key: string = Object.keys(timeUnitValues)[i]; // get current key
-    
+
     // skip special year
     if (key === 'a') continue;
 
-    // current time
-    let ctime: number = time / timeUnitValues[key];
+    let ctime: number = time / timeUnitValues[key]; // current time
     if (ctime >= 1) {
-      if ((numberOfMostSignificantUnitsShown) < ++nr) break;
+      // if false, it is the wrong unit
+      if (numberOfMostSignificantUnitsShown < ++nr) break;
 
-      // format ctime
-      ctime = Math.floor(ctime);
+      ctime = Math.floor(ctime); // format ctime
 
-      // add string to timeStr
-      timeStr += ctime; // time
-      timeStr += spaceBetweenNumberAndUnit === true && format !== 'short' ? ' ' : ''; // space between time
-      // add unit
+      // add strings to the final timeStr string
+      timeStr += ctime; // time value
+      timeStr += spaceBetweenNumberAndUnit ? ' ' : ''; // space between time and unit
+      // add unit (with s if more than one)
       timeStr +=
         fullTimeUnitNames[key][format] +
         (ctime !== 1 && format !== 'short' ? 's' : '');
-      // space between timers
+
+      // space between units
       timeStr += stringBetweenUnits;
 
-      // format time
+      // remove current time from main time
       time -= ctime * timeUnitValues[key];
     }
   }
 
   // remove unwanted end string
-  while (timeStr.endsWith(stringBetweenUnits))
+  while (timeStr.endsWith(stringBetweenUnits) && stringBetweenUnits !== '')
     timeStr = timeStr.slice(0, -1 * stringBetweenUnits.length);
 
   // return the result
