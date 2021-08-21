@@ -50,7 +50,7 @@ export function msToTimeString(
   time: number,
   format: 'short' | 'medium' | 'long' = 'short',
   spaces: boolean = false,
-  numberOfMostSignificantUnits: number = 100,
+  numberOfMostSignificantUnits: number = 15,
   joinString: string = ' '
 ): string | undefined {
   // format mode
@@ -70,7 +70,7 @@ export function msToTimeString(
     // current time
     let ctime: number = time / timeUnitValues[key];
     if (ctime >= 1) {
-      if ((numberOfMostSignificantUnits ?? 100) < ++nr) break;
+      if ((numberOfMostSignificantUnits) < ++nr) break;
 
       // format ctime
       ctime = Math.floor(ctime);
