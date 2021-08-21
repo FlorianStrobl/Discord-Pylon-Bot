@@ -1,6 +1,4 @@
-// Florian Crafter - June 2021 - Version 1.2
-
-// msToTimeString(time: number, format?: 'short' | 'medium' | 'long', spaces?: boolean);
+// Florian Crafter - June 2021 - Version 1.3
 
 // msToTimeString(330000, "short", false)        => 5m30s
 // msToTimeString(330000, "short", true) ....... => 5m 30s
@@ -49,9 +47,9 @@ const fullTimeUnitNames: {
 export function msToTimeString(
   time: number,
   format: 'short' | 'medium' | 'long' = 'short',
-  spaces: boolean = false,
-  numberOfMostSignificantUnits: number = 15,
-  joinString: string = ' '
+  spaceBetweenNumberAndUnit: boolean = false,
+  stringBetweenUnits: string = ' ',
+  numberOfMostSignificantUnitsShown: number = 15
 ): string | undefined {
   // format mode
   if (format !== 'short' && format !== 'medium' && format !== 'long')
@@ -70,20 +68,20 @@ export function msToTimeString(
     // current time
     let ctime: number = time / timeUnitValues[key];
     if (ctime >= 1) {
-      if ((numberOfMostSignificantUnits) < ++nr) break;
+      if ((numberOfMostSignificantUnitsShown) < ++nr) break;
 
       // format ctime
       ctime = Math.floor(ctime);
 
       // add string to timeStr
       timeStr += ctime; // time
-      timeStr += spaces === true && format !== 'short' ? ' ' : ''; // space between time
+      timeStr += spaceBetweenNumberAndUnit === true && format !== 'short' ? ' ' : ''; // space between time
       // add unit
       timeStr +=
         fullTimeUnitNames[key][format] +
         (ctime !== 1 && format !== 'short' ? 's' : '');
       // space between timers
-      timeStr += spaces === true ? joinString : '';
+      timeStr += stringBetweenUnits;
 
       // format time
       time -= ctime * timeUnitValues[key];
@@ -91,8 +89,8 @@ export function msToTimeString(
   }
 
   // remove unwanted end string
-  while (timeStr.endsWith(joinString))
-    timeStr = timeStr.slice(0, -1 * joinString.length);
+  while (timeStr.endsWith(stringBetweenUnits))
+    timeStr = timeStr.slice(0, -1 * stringBetweenUnits.length);
 
   // return the result
   if (timeStr === '') return undefined;
