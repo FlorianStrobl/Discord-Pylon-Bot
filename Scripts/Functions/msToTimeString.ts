@@ -50,8 +50,8 @@ export function msToTimeString(
   time: number,
   format: 'short' | 'medium' | 'long' = 'short',
   spaces: boolean = false,
-  joinString: string = ' ',
-  numberOfMostSignificantUnits: number = 100
+  numberOfMostSignificantUnits: number = 100,
+  joinString: string = ' '
 ): string | undefined {
   // format mode
   if (format !== 'short' && format !== 'medium' && format !== 'long')
