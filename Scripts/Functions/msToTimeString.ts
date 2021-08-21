@@ -1,6 +1,5 @@
 // Florian Crafter - June 2021 - Version 1.2
 
-// timeStringToMS: https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Scripts/Functions/TimeStringToMS.ts
 // msToTimeString(time: number, format?: 'short' | 'medium' | 'long', spaces?: boolean);
 
 // msToTimeString(330000, "short", false)        => 5m30s
@@ -49,32 +48,22 @@ const fullTimeUnitNames: {
 
 export function msToTimeString(
   time: number,
-  format?: 'short' | 'medium' | 'long',
-  spaces?: boolean,
-  numberOfMostSignificantUnits?: number,
-  joinString?: string
+  format: 'short' | 'medium' | 'long' = 'short',
+  spaces: boolean = false,
+  joinString: string = ' ',
+  numberOfMostSignificantUnits: number = 100
 ): string | undefined {
   // format mode
-  if (
-    format === undefined ||
-    (format !== 'short' && format !== 'medium' && format !== 'long')
-  )
+  if (format !== 'short' && format !== 'medium' && format !== 'long')
     format = 'short';
 
-  // space mode
-  if (spaces === undefined) spaces = false;
-
-  // join string
-  if (joinString === undefined) joinString = ' ';
-
-  // the return string
-  let timeStr: string = '';
+  let timeStr: string = '';  // the return string
   let nr: number = 0;
 
   // go through all times beginning with the end
   for (let i = Object.keys(timeUnitValues).length; i >= 0; --i) {
-    // get current key
-    const key: string = Object.keys(timeUnitValues)[i];
+    const key: string = Object.keys(timeUnitValues)[i]; // get current key
+    
     // skip special year
     if (key === 'a') continue;
 
@@ -87,11 +76,9 @@ export function msToTimeString(
       ctime = Math.floor(ctime);
 
       // add string to timeStr
-      // time
-      timeStr += ctime;
-      // space between time
-      timeStr += spaces === true && format !== 'short' ? ' ' : '';
-      // unit
+      timeStr += ctime; // time
+      timeStr += spaces === true && format !== 'short' ? ' ' : ''; // space between time
+      // add unit
       timeStr +=
         fullTimeUnitNames[key][format] +
         (ctime !== 1 && format !== 'short' ? 's' : '');
