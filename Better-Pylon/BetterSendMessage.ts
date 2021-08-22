@@ -1,8 +1,8 @@
 // Florian Strobl - ClashCrafter#0001 - March 2021 - Version 1.1
-// You can combine this with my !clear command if you uncomment the lines were EDIT is
+// You can combine this with my !clear command if you uncomment the lines where EDIT is
 
-export async function SendMessage(
-  were:
+export async function sendMessage(
+  where:
     | string // channel id
     | discord.Message // reply to message
     | discord.GuildMemberMessage // reply to message
@@ -18,24 +18,24 @@ export async function SendMessage(
   deleteTime?: number
 ): Promise<discord.Message | undefined> {
   if (
-    were === undefined ||
-    were === null ||
+    where === undefined ||
+    where === null ||
     message === undefined ||
     message == null
   )
     return undefined;
 
   let sendMessageChannel: discord.GuildTextChannel | undefined;
-  if (were instanceof discord.GuildTextChannel) {
-    sendMessageChannel = were;
+  if (where instanceof discord.GuildTextChannel) {
+    sendMessageChannel = where;
   } else if (
-    were instanceof discord.GuildMemberMessage ||
-    were instanceof discord.Message
+    where instanceof discord.GuildMemberMessage ||
+    where instanceof discord.Message
   ) {
-    sendMessageChannel = (await were.getChannel()) as discord.GuildTextChannel;
+    sendMessageChannel = (await where.getChannel()) as discord.GuildTextChannel;
   } else {
     await discord
-      .getGuildTextChannel(were as string)
+      .getGuildTextChannel(where as string)
       .then(async (c) => (sendMessageChannel = c as discord.GuildTextChannel));
   }
 
