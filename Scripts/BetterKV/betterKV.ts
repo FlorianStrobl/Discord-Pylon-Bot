@@ -1,4 +1,4 @@
-// Florian Crafter (ClashCrafter#0001) - 02-05.2021 - Version 2.5.3
+// Florian Crafter (CodeCrafter#0001) - 02-05.2021 - Version 2.5.3
 
 // "How to use it", "Explanation", "Documentation", "Benchmarks", "Example" and "Test if everything works" are at the end of the file (search for "Docs")
 // ConvertOldDBToNewDB AND ConvertDBToNativeKV ARE NOT FINISHED YET!!!
