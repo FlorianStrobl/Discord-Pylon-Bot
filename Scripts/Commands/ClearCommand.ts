@@ -2,7 +2,7 @@
 
 // Save the last 350 messages (it's about 350) from a channel and delete them with !clear n. The code DOESN'T save the messages from Pylon itself so these can't be deleted :(
 // To delete the messages of the bot itself, you can use my SendMessage() function, which saves the ids of the bot ids too
-// (https://gist.github.com/FlorianStrobl/8c606ce857eb6c6d422fc47263e9446f)
+// (https://github.com/FlorianStrobl/Discord-Pylon-Bot/blob/master/Better-Pylon/BetterSendMessage.ts)
 
 const KV = new pylon.KVNamespace('clear');
 const Commands = new discord.command.CommandGroup();
