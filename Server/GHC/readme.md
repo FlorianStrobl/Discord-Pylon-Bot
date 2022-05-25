@@ -1,7 +1,7 @@
 # Pylon-GHC
 Still in Beta!
 This is the code for the Pylon Discord Bot on the GermanHumorCult Server.
-It was entirely written in TypeScript by ClashCrafter#0001.
+It was entirely written in TypeScript by CodeCrafter#0001.
 
 three apis in use
 
